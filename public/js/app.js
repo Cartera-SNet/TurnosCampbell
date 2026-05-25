@@ -183,19 +183,19 @@ async function cargarMalla() {
           <td><span style="font-size:12px;font-weight:500">${t.ambulancia_codigo}</span></td>
           <td><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
           <td class="cell-paramedico">${paraStr}</td>
-          <td><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t._id}')">✕</button></td>
+          <td><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
         </tr>`;
         firstRow = false;
       });
 
       data.extras.forEach(e => {
-        const pm = paramedicos.find(p => p._id === e.paramedico_id);
+        const pm = paramedicos.find(p => p.id === e.paramedico_id);
         html += `<tr style="${rowStyle}">
           ${firstRow ? `<td rowspan="${totalFilas}" style="font-weight:600">${diaSemana}</td><td rowspan="${totalFilas}" style="font-weight:600">${parseInt(fecha.split('-')[2])}</td>` : ''}
           <td><span style="font-size:12px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
           <td><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
           <td class="cell-paramedico">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
-          <td><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e._id}')">✕</button></td>
+          <td><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
         </tr>`;
         firstRow = false;
       });
@@ -231,7 +231,7 @@ function abrirModalTurno(fecha = '') {
   const selAmb = document.getElementById('turno-ambulancia');
   selAmb.innerHTML = '<option value="">-- Seleccionar ambulancia --</option>';
   ambulancias.filter(a => a.activa !== false).forEach(a => {
-    selAmb.innerHTML += `<option value="${a._id}" data-codigo="${a.codigo}">${a.codigo} - ${a.nombre}</option>`;
+    selAmb.innerHTML += `<option value="${a.id}" data-codigo="${a.codigo}">${a.codigo} - ${a.nombre}</option>`;
   });
 
   document.querySelector('input[name="turno-tipo"][value="dia"]').checked = true;
@@ -246,7 +246,7 @@ function abrirModalTurno(fecha = '') {
 }
 
 function optsParamedicos() {
-  return paramedicos.filter(p => p.activo !== false).map(p => `<option value="${p._id}" data-nombre="${p.nombre}">${p.nombre}</option>`).join('');
+  return paramedicos.filter(p => p.activo !== false).map(p => `<option value="${p.id}" data-nombre="${p.nombre}">${p.nombre}</option>`).join('');
 }
 
 function agregarFilaParamedico() {
@@ -319,13 +319,13 @@ function abrirModalExtra() {
   const selPm = document.getElementById('extra-paramedico');
   selPm.innerHTML = '<option value="">-- Seleccionar --</option>';
   paramedicos.filter(p => p.activo !== false).forEach(p => {
-    selPm.innerHTML += `<option value="${p._id}" data-nombre="${p.nombre}">${p.nombre}</option>`;
+    selPm.innerHTML += `<option value="${p.id}" data-nombre="${p.nombre}">${p.nombre}</option>`;
   });
 
   const selAmb = document.getElementById('extra-ambulancia');
   selAmb.innerHTML = '<option value="">-- Sin especificar --</option>';
   ambulancias.filter(a => a.activa !== false).forEach(a => {
-    selAmb.innerHTML += `<option value="${a._id}" data-codigo="${a.codigo}">${a.codigo} - ${a.nombre}</option>`;
+    selAmb.innerHTML += `<option value="${a.id}" data-codigo="${a.codigo}">${a.codigo} - ${a.nombre}</option>`;
   });
 
   modal.classList.add('open');
@@ -435,7 +435,7 @@ async function cargarHoras() {
 // ============================================================
 function abrirModalParamedico(pm = null) {
   document.getElementById('modal-paramedico-title').textContent = pm ? 'Editar Paramédico' : 'Nuevo Paramédico';
-  document.getElementById('paramedico-id').value = pm?._id || '';
+  document.getElementById('paramedico-id').value = pm?.id || '';
   document.getElementById('paramedico-nombre').value = pm?.nombre || '';
   document.getElementById('paramedico-codigo').value = pm?.codigo || '';
   document.getElementById('modal-paramedico').classList.add('open');
@@ -482,7 +482,7 @@ function renderParamedicos() {
       </div>
       <div class="card-actions">
         <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
-        <button class="btn-danger" onclick="eliminarParamedico('${p._id}')">Eliminar</button>
+        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -492,7 +492,7 @@ function renderParamedicos() {
 // ============================================================
 function abrirModalAmbulancia(amb = null) {
   document.getElementById('modal-ambulancia-title').textContent = amb ? 'Editar Ambulancia' : 'Nueva Ambulancia';
-  document.getElementById('ambulancia-id').value = amb?._id || '';
+  document.getElementById('ambulancia-id').value = amb?.id || '';
   document.getElementById('ambulancia-nombre').value = amb?.nombre || '';
   document.getElementById('ambulancia-codigo').value = amb?.codigo || '';
   document.getElementById('modal-ambulancia').classList.add('open');
@@ -539,7 +539,7 @@ function renderAmbulanciasList() {
       </div>
       <div class="card-actions">
         <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
-        <button class="btn-danger" onclick="eliminarAmbulancia('${a._id}')">Eliminar</button>
+        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -639,7 +639,7 @@ async function verificarBackupKey() {
   status.textContent = 'Verificando…';
 
   try {
-    const res = await fetch('/api/backup/info', { headers: { 'x-backup-key': key } });
+    const res  = await fetch('/api/backup/info', { headers: { 'x-backup-key': key } });
     const data = await res.json();
 
     if (!res.ok) {
@@ -651,13 +651,10 @@ async function verificarBackupKey() {
 
     status.innerHTML = `<span style="color:var(--verde);">✅ Clave correcta</span>`;
 
-    // Mostrar info de la BD
     const r = data.registros;
     document.getElementById('backup-info-content').innerHTML = `
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
-        <tr><td style="padding:5px 0;color:var(--text-muted);">Archivo</td><td><strong>${data.archivo}</strong></td></tr>
-        <tr><td style="padding:5px 0;color:var(--text-muted);">Tamaño</td><td><strong>${data.tamaño_kb}</strong></td></tr>
-        <tr><td style="padding:5px 0;color:var(--text-muted);">Última modificación</td><td><strong>${new Date(data.ultima_modificacion).toLocaleString('es-AR')}</strong></td></tr>
+        <tr><td style="padding:5px 0;color:var(--text-muted);">Motor</td><td><strong>${data.motor}</strong></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);" colspan="2"><hr style="border:none;border-top:1px solid var(--border);margin:6px 0;"></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);">Paramédicos</td><td><strong>${r.paramedicos}</strong></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);">Ambulancias</td><td><strong>${r.ambulancias}</strong></td></tr>
@@ -667,22 +664,8 @@ async function verificarBackupKey() {
     document.getElementById('backup-info-card').style.display = 'block';
     document.getElementById('backup-actions').style.display = 'flex';
   } catch(e) {
-    status.innerHTML = `<span style="color:#b71c1c;">❌ Error de conexión: ${e.message}</span>`;
+    status.innerHTML = `<span style="color:#b71c1c;">❌ Error: ${e.message}</span>`;
   }
-}
-
-function descargarBackup() {
-  const key = backupKey();
-  // Abrir en nueva pestaña con la clave como query param para descarga directa
-  const fecha = new Date().toISOString().slice(0,10);
-  const url = `/api/backup/descargar?key=${encodeURIComponent(key)}`;
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `campbell_backup_${fecha}.db`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  toast('Descarga iniciada');
 }
 
 async function enviarBackupEmail() {
@@ -701,32 +684,5 @@ async function enviarBackupEmail() {
     status.innerHTML = `<span style="color:var(--verde);">✅ ${data.mensaje}</span>`;
   } catch (e) {
     status.innerHTML = `<span style="color:#b71c1c;">❌ Error: ${e.message}</span>`;
-  }
-}
-  const archivo = document.getElementById('backup-archivo').files[0];
-  if (!archivo) { toast('Seleccioná un archivo .db primero'); return; }
-
-  const confirmado = confirm(
-    '⚠️ ATENCIÓN\n\nEsto reemplazará TODOS los datos actuales con el backup seleccionado.\n\n¿Estás seguro/a?'
-  );
-  if (!confirmado) return;
-
-  const key = backupKey();
-  const form = new FormData();
-  form.append('archivo', archivo);
-
-  try {
-    const res  = await fetch('/api/backup/restaurar', { method: 'POST', headers: { 'x-backup-key': key }, body: form });
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert('❌ Error al restaurar:\n' + data.error);
-      return;
-    }
-
-    toast('✅ Base de datos restaurada. Recargando…');
-    setTimeout(() => location.reload(), 2000);
-  } catch(e) {
-    alert('Error de conexión: ' + e.message);
   }
 }
