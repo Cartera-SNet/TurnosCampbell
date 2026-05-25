@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turnos – Fundación Campbell</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="header-content">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <img src="/img/logo.png" alt="Campbell" onerror="this.parentElement.innerHTML='🚑'">
+        </div>
+        <div class="logo-text">
+          <div class="fundacion">Fundación</div>
+          <div class="campbell">CAMPBELL</div>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-btn active" data-page="malla">📅 Malla Mensual</button>
+        <button class="nav-btn" data-page="horas">⏱ Control de Horas</button>
+        <button class="nav-btn" data-page="paramedicos">👨‍⚕️ Paramédicos</button>
+        <button class="nav-btn" data-page="ambulancias">🚑 Ambulancias</button>
+        <button class="nav-btn" data-page="backup">💾 Backup</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ── MALLA MENSUAL ── -->
+    <section id="page-malla" class="page active">
+      <div class="page-header">
+        <h1>Malla de Turnos</h1>
+        <div class="controls">
+          <select id="malla-mes"></select>
+          <select id="malla-anio"></select>
+          <button class="btn-primary" onclick="cargarMalla()">Cargar</button>
+          <button class="btn-export" onclick="exportarExcel()">
+            <span class="icon-excel">📊</span> Exportar Excel
+          </button>
+          <button class="btn-export" onclick="exportarPDF()" style="border-color:#b71c1c;color:#b71c1c;">
+            <span>📄</span> Exportar PDF
+          </button>
+          <button class="btn-secondary" onclick="abrirModalTurno()">+ Agregar Turno</button>
+        </div>
+      </div>
+      <div id="malla-container"></div>
+    </section>
+
+    <!-- ── CONTROL DE HORAS ── -->
+    <section id="page-horas" class="page">
+      <div class="page-header">
+        <h1>Control de Horas</h1>
+        <div class="controls">
+          <select id="horas-mes"></select>
+          <select id="horas-anio"></select>
+          <button class="btn-primary" onclick="cargarHoras()">Cargar</button>
+          <button class="btn-secondary" onclick="abrirModalExtra()">+ Horas Extra</button>
+        </div>
+      </div>
+      <div id="horas-container"></div>
+    </section>
+
+    <!-- ── PARAMÉDICOS ── -->
+    <section id="page-paramedicos" class="page">
+      <div class="page-header">
+        <h1>Paramédicos</h1>
+        <div class="controls">
+          <button class="btn-export" onclick="abrirModalImportar('paramedicos')">📥 Importar Excel</button>
+          <button class="btn-primary" onclick="abrirModalParamedico()">+ Nuevo Paramédico</button>
+        </div>
+      </div>
+      <div id="paramedicos-container"></div>
+    </section>
+
+    <!-- ── AMBULANCIAS ── -->
+    <section id="page-ambulancias" class="page">
+      <div class="page-header">
+        <h1>Ambulancias</h1>
+        <div class="controls">
+          <button class="btn-export" onclick="abrirModalImportar('ambulancias')">📥 Importar Excel</button>
+          <button class="btn-primary" onclick="abrirModalAmbulancia()">+ Nueva Ambulancia</button>
+        </div>
+      </div>
+      <div id="ambulancias-container"></div>
+    </section>
+
+    <!-- ── BACKUP ── -->
+    <section id="page-backup" class="page">
+      <div class="page-header">
+        <h1>💾 Backup de Base de Datos</h1>
+      </div>
+      <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px;">
+
+        <!-- Clave de acceso -->
+        <div style="background:var(--verde-bg);border:1px solid var(--verde-borde);border-radius:10px;padding:18px;">
+          <label style="font-weight:600;color:var(--verde);display:block;margin-bottom:8px;">🔑 Clave de backup</label>
+          <div style="display:flex;gap:8px;">
+            <input type="password" id="backup-key" placeholder="Ingresá la clave BACKUP_KEY"
+              style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+            <button class="btn-primary" onclick="verificarBackupKey()">Verificar</button>
+          </div>
+          <div id="backup-key-status" style="margin-top:8px;font-size:13px;"></div>
+        </div>
+
+        <!-- Info de la BD -->
+        <div id="backup-info-card" style="display:none;background:white;border:1px solid var(--border);border-radius:10px;padding:18px;">
+          <h3 style="margin:0 0 12px;color:var(--verde);font-size:15px;">📊 Estado de la base de datos</h3>
+          <div id="backup-info-content"></div>
+        </div>
+
+        <!-- Descargar -->
+        <div id="backup-actions" style="display:none;display:none;flex-direction:column;gap:12px;">
+          <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:18px;">
+            <h3 style="margin:0 0 6px;font-size:15px;">⬇️ Descargar backup</h3>
+            <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">
+              Descarga una copia completa de <code>campbell.db</code>. Guardala en un lugar seguro.
+            </p>
+            <button class="btn-primary" onclick="descargarBackup()" style="width:100%;">
+              💾 Descargar campbell.db
+            </button>
+          </div>
+
+          <!-- Enviar por email -->
+          <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:18px;">
+            <h3 style="margin:0 0 6px;font-size:15px;">📧 Enviar por email ahora</h3>
+            <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">
+              Manda el backup como adjunto al email configurado en <code>BACKUP_EMAIL_DESTINO</code>.
+              También se envía automáticamente todos los días a medianoche.
+            </p>
+            <button class="btn-secondary" onclick="enviarBackupEmail()" style="width:100%;">
+              📧 Enviar backup por email
+            </button>
+            <div id="email-status" style="margin-top:10px;font-size:13px;"></div>
+          </div>
+
+          <!-- Restaurar -->
+          <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:18px;">
+            <h3 style="margin:0 0 6px;font-size:15px;">⬆️ Restaurar backup</h3>
+            <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">
+              Subí un archivo <code>.db</code> descargado previamente para restaurar todos los datos.
+              <strong style="color:#b71c1c;">Reemplaza la base de datos actual.</strong>
+            </p>
+            <input type="file" id="backup-archivo" accept=".db"
+              style="display:block;width:100%;padding:8px;border:1px dashed var(--border);border-radius:6px;margin-bottom:10px;font-size:13px;">
+            <button class="btn-secondary" onclick="restaurarBackup()"
+              style="width:100%;border-color:#b71c1c;color:#b71c1c;">
+              ⚠️ Restaurar base de datos
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- MODAL TURNO -->
+<div id="modal-turno" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>📅 Asignar Turno</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-turno')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="turno-fecha">
+      </div>
+      <div class="form-group">
+        <label>Ambulancia</label>
+        <select id="turno-ambulancia"></select>
+      </div>
+      <div class="form-group">
+        <label>Tipo de Turno</label>
+        <div class="radio-group">
+          <label class="radio-label">
+            <input type="radio" name="turno-tipo" value="dia" checked>
+            ☀️ Día &nbsp;<small>(7am–6pm · 11h)</small>
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="turno-tipo" value="noche">
+            🌙 Noche &nbsp;<small>(6pm–7am · 13h)</small>
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Paramédicos <small style="font-weight:400;color:var(--text-muted)">(mín. 1, máx. 3)</small></label>
+        <div id="paramedicos-seleccion">
+          <div class="paramedico-row">
+            <select class="select-paramedico"><option value="">— Seleccionar —</option></select>
+            <button class="btn-icon" onclick="agregarFilaParamedico()">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-turno')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarTurno()">Guardar Turno</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EXTRA -->
+<div id="modal-extra" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>⚡ Registrar Horas Extra</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-extra')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Fecha</label>
+        <input type="date" id="extra-fecha">
+      </div>
+      <div class="form-group">
+        <label>Paramédico</label>
+        <select id="extra-paramedico"></select>
+      </div>
+      <div class="form-group">
+        <label>Horas extra</label>
+        <input type="number" id="extra-horas" min="1" max="24" placeholder="Ej: 4">
+      </div>
+      <div class="form-group">
+        <label>Ambulancia <small style="font-weight:400;color:var(--text-muted)">(opcional)</small></label>
+        <select id="extra-ambulancia">
+          <option value="">— Sin especificar —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Nota <small style="font-weight:400;color:var(--text-muted)">(opcional)</small></label>
+        <input type="text" id="extra-nota" placeholder="Ej: Turno de reemplazo">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-extra')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarExtra()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PARAMÉDICO -->
+<div id="modal-paramedico" class="modal">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2 id="modal-paramedico-title">👨‍⚕️ Nuevo Paramédico</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-paramedico')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="paramedico-id">
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <input type="text" id="paramedico-nombre" placeholder="Ej: Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label>Código</label>
+        <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-paramedico')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarParamedico()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AMBULANCIA -->
+<div id="modal-ambulancia" class="modal">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2 id="modal-ambulancia-title">🚑 Nueva Ambulancia</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-ambulancia')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ambulancia-id">
+      <div class="form-group">
+        <label>Nombre / Descripción</label>
+        <input type="text" id="ambulancia-nombre" placeholder="Ej: Ambulancia Norte">
+      </div>
+      <div class="form-group">
+        <label>Código / Placa</label>
+        <input type="text" id="ambulancia-codigo" placeholder="Ej: AMB-01">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-ambulancia')">Cancelar</button>
+      <button class="btn-primary" onclick="guardarAmbulancia()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR -->
+<div id="modal-importar" class="modal">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2 id="modal-importar-title">📥 Importar desde Excel</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-importar')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--verde-bg);border:1px solid var(--verde-borde);border-radius:8px;padding:12px;font-size:13px;color:var(--verde);">
+        <strong>Formato requerido:</strong> archivo <code>.xlsx</code> o <code>.xls</code> con dos columnas:<br><br>
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <tr style="background:var(--verde);color:white;">
+            <th style="padding:5px 10px;text-align:left;">nombre</th>
+            <th style="padding:5px 10px;text-align:left;">codigo</th>
+          </tr>
+          <tr style="background:white;">
+            <td style="padding:5px 10px;border:1px solid var(--border);">Juan Pérez</td>
+            <td style="padding:5px 10px;border:1px solid var(--border);">P001</td>
+          </tr>
+          <tr style="background:var(--verde-bg);">
+            <td style="padding:5px 10px;border:1px solid var(--border);">María García</td>
+            <td style="padding:5px 10px;border:1px solid var(--border);">P002</td>
+          </tr>
+        </table>
+      </div>
+      <div class="form-group">
+        <label>Seleccionar archivo Excel</label>
+        <input type="file" id="importar-archivo" accept=".xlsx,.xls" style="padding:6px;">
+      </div>
+      <div id="importar-resultado" style="display:none;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-importar')">Cancelar</button>
+      <button class="btn-primary" id="btn-importar-confirm" onclick="ejecutarImportacion()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+<script src="/js/app.js"></script>
+</body>
+</html>
