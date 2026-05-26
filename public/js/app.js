@@ -686,3 +686,35 @@ async function enviarBackupEmail() {
     status.innerHTML = `<span style="color:#b71c1c;">❌ Error: ${e.message}</span>`;
   }
 }
+
+function descargarBackup() {
+  const key = backupKey();
+  if (!key) { toast('Ingresá la clave de backup primero', 'error'); return; }
+  const fecha = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = `/api/backup/descargar?key=${encodeURIComponent(key)}`;
+  a.download = `campbell_backup_${fecha}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('Descarga iniciada');
+}
+
+async function restaurarBackup() {
+  const archivo = document.getElementById('backup-archivo')?.files[0];
+  if (!archivo) { toast('Seleccioná un archivo primero', 'error'); return; }
+  const confirmado = confirm('⚠️ ATENCIÓN\n\nEsto reemplazará TODOS los datos actuales con el backup seleccionado.\n\n¿Estás seguro/a?');
+  if (!confirmado) return;
+  const key = backupKey();
+  const form = new FormData();
+  form.append('archivo', archivo);
+  try {
+    const res  = await fetch('/api/backup/restaurar', { method: 'POST', headers: { 'x-backup-key': key }, body: form });
+    const data = await res.json();
+    if (!res.ok) { alert('❌ Error al restaurar:\n' + data.error); return; }
+    toast('✅ Base de datos restaurada. Recargando…');
+    setTimeout(() => location.reload(), 2000);
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+  }
+}
