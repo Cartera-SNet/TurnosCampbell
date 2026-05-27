@@ -137,8 +137,8 @@ async function cargarMalla() {
   let html = `
     <div class="leyenda">
       <span><strong>${MESES[mes-1]} ${anio}</strong></span>
-      <span class="leyenda-item"><span class="turno-chip turno-dia">☀️ Día</span> 7am-6pm (11h)</span>
-      <span class="leyenda-item"><span class="turno-chip turno-noche">🌙 Noche</span> 6pm-7am (13h)</span>
+      <span class="leyenda-item"><span class="turno-chip turno-dia">☀️ Día</span> 11h</span>
+      <span class="leyenda-item"><span class="turno-chip turno-noche">🌙 Noche</span> 11h</span>
       <span style="color:#6b7280;font-size:12px">Límite semanal: ${limiteSemanal}h</span>
     </div>
     <div class="malla-table-wrapper">
@@ -402,7 +402,7 @@ async function cargarHoras() {
     const tieneAlerta = r.alertas.length > 0;
     const rowStyle = tieneAlerta ? 'background:#fff7ed' : '';
 
-    const semanasHtml = Object.entries(r.semanas).map(([sem, data]) => {
+    const semanasHtml = Object.entries(r.semanas).sort(([a], [b]) => a.localeCompare(b)).map(([sem, data]) => {
       const esAlerta = data.horas > data.limite;
       const porcentaje = Math.round((data.horas / data.limite) * 100);
       return `<div class="semana-row">

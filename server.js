@@ -22,7 +22,18 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Sistema de Turnos - Fundación Campbell`);
   console.log(`Corriendo en puerto ${PORT}`);
+
+  // Migración: actualizar turnos noche de 13h a 11h
+  try {
+    const db = require('./db/database');
+    const { rowCount } = await db.query(
+      "UPDATE turnos SET horas = 11 WHERE turno = 'noche' AND horas = 13"
+    );
+    if (rowCount > 0) console.log(`[migración] ${rowCount} turno(s) noche actualizados a 11h`);
+  } catch (e) {
+    console.error('[migración] Error:', e.message);
+  }
 });

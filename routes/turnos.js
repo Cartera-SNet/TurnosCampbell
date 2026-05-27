@@ -3,7 +3,7 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
 
-const HORAS_TURNO = { dia: 11, noche: 13 };
+const HORAS_TURNO = { dia: 11, noche: 11 };
 
 function getSemana(fechaStr) {
   const d    = new Date(fechaStr + 'T12:00:00');
