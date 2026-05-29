@@ -3,7 +3,21 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
 
-const HORAS_TURNO = { dia: 11, noche: 11 };
+// ── Horas por tipo de servicio ────────────────────────────────
+// Parametrizable: agregar aquí los códigos de ambulancia con horas especiales
+const HORAS_SERVICIO_ESPECIAL = {
+  'URG':   8,
+  'HOSP.': 8,
+};
+const HORAS_TURNO_DEFAULT = { dia: 11, noche: 11 };
+
+function getHorasTurno(turno, ambulancia_codigo) {
+  const codigo = (ambulancia_codigo || '').trim().toUpperCase();
+  if (HORAS_SERVICIO_ESPECIAL[codigo] !== undefined) {
+    return HORAS_SERVICIO_ESPECIAL[codigo];
+  }
+  return HORAS_TURNO_DEFAULT[turno] || 11;
+}
 
 function getSemana(fechaStr) {
   const d    = new Date(fechaStr + 'T12:00:00');
@@ -19,7 +33,6 @@ function getLimiteHoras(fechaStr) {
   return mes >= 7 ? 42 : 44;
 }
 
-// Helper: obtiene los paramédicos de un turno
 async function obtenerParamedicos(turno_id) {
   const { rows } = await db.query(
     'SELECT paramedico_id AS id, paramedico_nombre AS nombre FROM turno_paramedicos WHERE turno_id = $1',
@@ -64,12 +77,11 @@ router.post('/', async (req, res) => {
 
   const semana = getSemana(fecha);
   const key    = `${fecha}_${ambulancia_id}_${turno}`;
-  const horas  = HORAS_TURNO[turno];
+  const horas  = getHorasTurno(turno, ambulancia_codigo);
   const client = await db.connect();
 
   try {
     await client.query('BEGIN');
-
     const existing = await client.query('SELECT id FROM turnos WHERE key = $1', [key]);
 
     let turnoId;
@@ -98,7 +110,6 @@ router.post('/', async (req, res) => {
     }
 
     await client.query('COMMIT');
-
     const { rows } = await db.query('SELECT * FROM turnos WHERE id = $1', [turnoId]);
     const saved = { ...rows[0], paramedicos: await obtenerParamedicos(turnoId) };
     res.status(201).json(saved);
@@ -118,7 +129,7 @@ router.delete('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Reporte de horas por paramédico en un mes
+// Reporte de horas — semanal + acumulado mensual
 router.get('/reporte/horas', async (req, res) => {
   const { mes, anio } = req.query;
   if (!mes || !anio) return res.status(400).json({ error: 'mes y anio requeridos' });
@@ -142,9 +153,9 @@ router.get('/reporte/horas', async (req, res) => {
       t.paramedicos.forEach(p => {
         if (!reporte[p.id]) reporte[p.id] = { paramedico_id: p.id, nombre: p.nombre, semanas: {}, total_mes: 0 };
         if (!reporte[p.id].semanas[t.semana]) reporte[p.id].semanas[t.semana] = { horas: 0, turnos: [] };
-        reporte[p.id].semanas[t.semana].horas += t.horas;
-        reporte[p.id].semanas[t.semana].turnos.push({ fecha: t.fecha, turno: t.turno, ambulancia: t.ambulancia_codigo, horas: t.horas });
-        reporte[p.id].total_mes += t.horas;
+        reporte[p.id].semanas[t.semana].horas += Number(t.horas);
+        reporte[p.id].semanas[t.semana].turnos.push({ fecha: t.fecha, turno: t.turno, ambulancia: t.ambulancia_codigo, horas: Number(t.horas) });
+        reporte[p.id].total_mes += Number(t.horas);
       });
     });
 

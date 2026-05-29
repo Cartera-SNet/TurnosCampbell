@@ -362,72 +362,146 @@ async function guardarExtra() {
 // ============================================================
 // CONTROL DE HORAS
 // ============================================================
+// Vista activa: 'semanal' o 'mensual'
+let _vistaHoras = 'semanal';
+let _reporteHoras = [];
+let _mesHoras = 1;
+
 async function cargarHoras() {
-  const mes = document.getElementById('horas-mes').value;
+  const mes  = document.getElementById('horas-mes').value;
   const anio = document.getElementById('horas-anio').value;
+  _mesHoras  = parseInt(mes);
   const container = document.getElementById('horas-container');
   container.innerHTML = '<p style="color:#6b7280;padding:20px">Calculando horas...</p>';
 
   const reporte = await fetch(`/api/turnos/reporte/horas?mes=${mes}&anio=${anio}`).then(r => r.json());
+  _reporteHoras = reporte;
 
   if (!reporte.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">📊</div><p>No hay turnos registrados en ${MESES[mes-1]} ${anio}</p></div>`;
     return;
   }
+  renderHoras();
+}
 
-  const limiteSemanal = parseInt(mes) >= 7 ? 42 : 44;
-  const totalAlertas = reporte.reduce((s, r) => s + r.alertas.length, 0);
-  const totalHoras = reporte.reduce((s, r) => s + r.total_mes, 0);
-  const conAlerta = reporte.filter(r => r.alertas.length > 0).length;
+function renderHoras() {
+  const container   = document.getElementById('horas-container');
+  const reporte     = _reporteHoras;
+  const limiteSemanal = _mesHoras >= 7 ? 42 : 44;
+  const totalHoras  = reporte.reduce((s, r) => s + r.total_mes, 0);
+  const conAlerta   = reporte.filter(r => r.alertas.length > 0).length;
+
+  const tabSemanal  = _vistaHoras === 'semanal';
 
   let html = `
     <div class="resumen-mes">
       <div class="resumen-stat"><div class="valor">${reporte.length}</div><div class="etiqueta">Paramédicos activos</div></div>
       <div class="resumen-stat"><div class="valor">${totalHoras}</div><div class="etiqueta">Horas totales mes</div></div>
-      <div class="resumen-stat"><div class="valor" style="color:${conAlerta > 0 ? '#e02424' : '#057a55'}">${conAlerta}</div><div class="etiqueta">Con alertas de horas</div></div>
+      <div class="resumen-stat"><div class="valor" style="color:${conAlerta > 0 ? '#e02424' : '#057a55'}">${conAlerta}</div><div class="etiqueta">Con alertas</div></div>
       <div class="resumen-stat"><div class="valor" style="color:#6b7280">${limiteSemanal}h</div><div class="etiqueta">Límite semanal</div></div>
     </div>
-    <div class="horas-table-wrapper">
-    <table class="horas-table">
-      <thead><tr>
-        <th>Paramédico</th>
-        <th>Total Mes</th>
-        <th>Detalle Semanal</th>
-        <th>Estado</th>
-      </tr></thead>
-      <tbody>
+
+    <!-- Tabs de vista -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button onclick="cambiarVistaHoras('semanal')" class="btn-${tabSemanal ? 'primary' : 'secondary'}"
+        style="font-size:13px;padding:6px 14px;">
+        📅 Vista Semanal
+      </button>
+      <button onclick="cambiarVistaHoras('mensual')" class="btn-${!tabSemanal ? 'primary' : 'secondary'}"
+        style="font-size:13px;padding:6px 14px;">
+        📆 Acumulado Mensual
+      </button>
+    </div>
   `;
 
-  reporte.sort((a, b) => b.alertas.length - a.alertas.length || b.total_mes - a.total_mes).forEach(r => {
-    const tieneAlerta = r.alertas.length > 0;
-    const rowStyle = tieneAlerta ? 'background:#fff7ed' : '';
+  if (tabSemanal) {
+    // ── VISTA SEMANAL ──────────────────────────────────────────
+    html += `
+      <div class="horas-table-wrapper">
+      <table class="horas-table">
+        <thead><tr>
+          <th>Paramédico</th>
+          <th>Total Mes</th>
+          <th>Detalle Semanal</th>
+          <th>Estado</th>
+        </tr></thead>
+        <tbody>
+    `;
 
-    const semanasHtml = Object.entries(r.semanas).sort(([a], [b]) => a.localeCompare(b)).map(([sem, data]) => {
-      const esAlerta = data.horas > data.limite;
-      const porcentaje = Math.round((data.horas / data.limite) * 100);
-      return `<div class="semana-row">
-        <span>Sem. ${formatFecha(sem)}</span>
-        <span>
-          <span style="color:${esAlerta ? '#e02424' : '#374151'};font-weight:${esAlerta ? '700' : '400'}">${data.horas}h</span>
-          <span style="color:#9ca3af"> / ${data.limite}h</span>
-          ${esAlerta ? `<span style="color:#e02424;font-size:11px"> ▲${data.horas - data.limite}h</span>` : ''}
-        </span>
-      </div>`;
-    }).join('');
+    reporte.sort((a, b) => b.alertas.length - a.alertas.length || b.total_mes - a.total_mes).forEach(r => {
+      const tieneAlerta = r.alertas.length > 0;
+      const semanasHtml = Object.entries(r.semanas).sort(([a], [b]) => a.localeCompare(b)).map(([sem, data]) => {
+        const esAlerta = data.horas > data.limite;
+        return `<div class="semana-row">
+          <span>Sem. ${formatFecha(sem)}</span>
+          <span>
+            <span style="color:${esAlerta ? '#e02424' : '#374151'};font-weight:${esAlerta ? '700' : '400'}">${data.horas}h</span>
+            <span style="color:#9ca3af"> / ${data.limite}h</span>
+            ${esAlerta ? `<span style="color:#e02424;font-size:11px"> ▲${data.horas - data.limite}h</span>` : ''}
+          </span>
+        </div>`;
+      }).join('');
+      const badgeClass = tieneAlerta ? 'badge-over' : (r.total_mes > 0 ? 'badge-ok' : 'badge-warn');
+      const badgeText  = tieneAlerta ? `⚠️ ${r.alertas.length} semana(s) excedida(s)` : (r.total_mes > 0 ? '✓ OK' : 'Sin turnos');
+      html += `<tr style="${tieneAlerta ? 'background:#fff7ed' : ''}">
+        <td style="font-weight:600">${r.nombre}</td>
+        <td style="font-size:20px;font-weight:700;color:var(--primary)">${r.total_mes}h</td>
+        <td><div class="semana-detail">${semanasHtml || '<span style="color:#9ca3af">—</span>'}</div></td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+      </tr>`;
+    });
 
-    const badgeClass = tieneAlerta ? 'badge-over' : (r.total_mes > 0 ? 'badge-ok' : 'badge-warn');
-    const badgeText = tieneAlerta ? `⚠️ ${r.alertas.length} semana(s) excedida(s)` : (r.total_mes > 0 ? '✓ OK' : 'Sin turnos');
+    html += '</tbody></table></div>';
 
-    html += `<tr style="${rowStyle}">
-      <td style="font-weight:600">${r.nombre}</td>
-      <td style="font-size:20px;font-weight:700;color:var(--primary)">${r.total_mes}h</td>
-      <td><div class="semana-detail">${semanasHtml || '<span style="color:#9ca3af">—</span>'}</div></td>
-      <td><span class="badge ${badgeClass}">${badgeText}</span></td>
-    </tr>`;
-  });
+  } else {
+    // ── VISTA MENSUAL ACUMULADA ────────────────────────────────
+    const ordenados = [...reporte].sort((a, b) => b.total_mes - a.total_mes);
+    const maxHoras  = ordenados[0]?.total_mes || 1;
 
-  html += '</tbody></table></div>';
+    html += `
+      <div class="horas-table-wrapper">
+      <table class="horas-table">
+        <thead><tr>
+          <th>Paramédico</th>
+          <th style="text-align:center">Horas Mes</th>
+          <th>Progreso</th>
+          <th style="text-align:center">Semanas</th>
+          <th>Estado</th>
+        </tr></thead>
+        <tbody>
+    `;
+
+    ordenados.forEach(r => {
+      const tieneAlerta = r.alertas.length > 0;
+      const pct = Math.round((r.total_mes / maxHoras) * 100);
+      const color = tieneAlerta ? '#e02424' : (r.total_mes > 0 ? '#057a55' : '#9ca3af');
+      const numSemanas = Object.keys(r.semanas).length;
+      const badgeClass = tieneAlerta ? 'badge-over' : (r.total_mes > 0 ? 'badge-ok' : 'badge-warn');
+      const badgeText  = tieneAlerta ? `⚠️ ${r.alertas.length} sem. excedida(s)` : (r.total_mes > 0 ? '✓ OK' : 'Sin turnos');
+
+      html += `<tr style="${tieneAlerta ? 'background:#fff7ed' : ''}">
+        <td style="font-weight:600">${r.nombre}</td>
+        <td style="text-align:center;font-size:22px;font-weight:700;color:${color}">${r.total_mes}h</td>
+        <td style="min-width:140px">
+          <div style="background:#e5e7eb;border-radius:99px;height:10px;overflow:hidden;">
+            <div style="background:${color};width:${pct}%;height:100%;border-radius:99px;transition:width .3s"></div>
+          </div>
+          <div style="font-size:11px;color:#6b7280;margin-top:2px">${pct}% del máximo</div>
+        </td>
+        <td style="text-align:center;color:#6b7280;font-size:13px">${numSemanas} sem.</td>
+        <td><span class="badge ${badgeClass}">${badgeText}</span></td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+  }
+
   container.innerHTML = html;
+}
+
+function cambiarVistaHoras(vista) {
+  _vistaHoras = vista;
+  renderHoras();
 }
 
 // ============================================================
