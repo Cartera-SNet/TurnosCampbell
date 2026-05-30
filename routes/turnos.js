@@ -8,7 +8,7 @@ const { randomUUID } = require('crypto');
 const HORAS_SERVICIO_ESPECIAL = {
   'URG':   8,
   'HOSP.': 8,
-  'MOVIL 65': 8,
+  'PAL': 8,
 };
 const HORAS_TURNO_DEFAULT = { dia: 11, noche: 11 };
 
