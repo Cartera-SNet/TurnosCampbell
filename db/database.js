@@ -65,7 +65,7 @@ async function inicializar() {
     CREATE INDEX IF NOT EXISTS idx_extras_fecha ON extras(fecha);
   `);
   // Agregar horas_turno si no existe (migración)
-    await pool.query(\`ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS horas_turno INTEGER NOT NULL DEFAULT 11\`).catch(() => {});
+    await pool.query('ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS horas_turno INTEGER NOT NULL DEFAULT 11').catch(() => {});
     console.log('[DB] Esquema PostgreSQL listo');
 }
 
