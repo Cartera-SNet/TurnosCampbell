@@ -528,7 +528,7 @@ async function guardarParamedico() {
 
   const url = id ? `/api/paramedicos/${id}` : '/api/paramedicos';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno, activa: true }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -587,7 +587,7 @@ async function guardarAmbulancia() {
 
   const url = id ? `/api/ambulancias/${id}` : '/api/ambulancias';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno, activa: true }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
