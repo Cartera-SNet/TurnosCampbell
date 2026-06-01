@@ -20,11 +20,12 @@ async function inicializar() {
     );
 
     CREATE TABLE IF NOT EXISTS ambulancias (
-      id      TEXT PRIMARY KEY,
-      nombre  TEXT NOT NULL,
-      codigo  TEXT NOT NULL UNIQUE,
-      activa  BOOLEAN NOT NULL DEFAULT TRUE,
-      creado  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      id          TEXT PRIMARY KEY,
+      nombre      TEXT NOT NULL,
+      codigo      TEXT NOT NULL UNIQUE,
+      activa      BOOLEAN NOT NULL DEFAULT TRUE,
+      horas_turno INTEGER NOT NULL DEFAULT 11,
+      creado      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS turnos (
@@ -63,7 +64,9 @@ async function inicializar() {
 
     CREATE INDEX IF NOT EXISTS idx_extras_fecha ON extras(fecha);
   `);
-  console.log('[DB] Esquema PostgreSQL listo');
+  // Agregar horas_turno si no existe (migración)
+    await pool.query(\`ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS horas_turno INTEGER NOT NULL DEFAULT 11\`).catch(() => {});
+    console.log('[DB] Esquema PostgreSQL listo');
 }
 
 inicializar().catch(e => console.error('[DB] Error inicializando esquema:', e.message));

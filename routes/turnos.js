@@ -3,20 +3,15 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
 
-// ── Horas por tipo de servicio ────────────────────────────────
-// Parametrizable: agregar aquí los códigos de ambulancia con horas especiales
-const HORAS_SERVICIO_ESPECIAL = {
-  'URG':   8,
-  'HOSP.': 8,
-};
-const HORAS_TURNO_DEFAULT = { dia: 11, noche: 11 };
-
-function getHorasTurno(turno, ambulancia_codigo) {
-  const codigo = (ambulancia_codigo || '').trim().toUpperCase();
-  if (HORAS_SERVICIO_ESPECIAL[codigo] !== undefined) {
-    return HORAS_SERVICIO_ESPECIAL[codigo];
+// Las horas por turno se leen desde ambulancias.horas_turno en la BD
+// Si no está definido, se usa 11h por defecto
+async function getHorasTurno(ambulancia_id) {
+  try {
+    const { rows } = await db.query('SELECT horas_turno FROM ambulancias WHERE id = $1', [ambulancia_id]);
+    return rows[0]?.horas_turno || 11;
+  } catch {
+    return 11;
   }
-  return HORAS_TURNO_DEFAULT[turno] || 11;
 }
 
 function getSemana(fechaStr) {
@@ -77,7 +72,7 @@ router.post('/', async (req, res) => {
 
   const semana = getSemana(fecha);
   const key    = `${fecha}_${ambulancia_id}_${turno}`;
-  const horas  = getHorasTurno(turno, ambulancia_codigo);
+  const horas  = await getHorasTurno(ambulancia_id);
   const client = await db.connect();
 
   try {

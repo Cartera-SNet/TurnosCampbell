@@ -287,6 +287,13 @@
         <label>Código / Placa</label>
         <input type="text" id="ambulancia-codigo" placeholder="Ej: AMB-01">
       </div>
+      <div class="form-group">
+        <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(11 = estándar, 8 = urgencias/hosp.)</small></label>
+        <select id="ambulancia-horas">
+          <option value="11">11 horas (estándar)</option>
+          <option value="8">8 horas (urgencias / hospitalización)</option>
+        </select>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModal('modal-ambulancia')">Cancelar</button>

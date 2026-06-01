@@ -1,3 +1,7 @@
+function fmtHoras(n) {
+  return Number(n).toLocaleString('es-CO') + 'h';
+}
+
 // ============================================================
 // ESTADO GLOBAL
 // ============================================================
@@ -396,7 +400,7 @@ function renderHoras() {
   let html = `
     <div class="resumen-mes">
       <div class="resumen-stat"><div class="valor">${reporte.length}</div><div class="etiqueta">Paramédicos activos</div></div>
-      <div class="resumen-stat"><div class="valor">${totalHoras}</div><div class="etiqueta">Horas totales mes</div></div>
+      <div class="resumen-stat"><div class="valor">${fmtHoras(totalHoras)}</div><div class="etiqueta">Horas totales mes</div></div>
       <div class="resumen-stat"><div class="valor" style="color:${conAlerta > 0 ? '#e02424' : '#057a55'}">${conAlerta}</div><div class="etiqueta">Con alertas</div></div>
       <div class="resumen-stat"><div class="valor" style="color:#6b7280">${limiteSemanal}h</div><div class="etiqueta">Límite semanal</div></div>
     </div>
@@ -445,7 +449,7 @@ function renderHoras() {
       const badgeText  = tieneAlerta ? `⚠️ ${r.alertas.length} semana(s) excedida(s)` : (r.total_mes > 0 ? '✓ OK' : 'Sin turnos');
       html += `<tr style="${tieneAlerta ? 'background:#fff7ed' : ''}">
         <td style="font-weight:600">${r.nombre}</td>
-        <td style="font-size:20px;font-weight:700;color:var(--primary)">${r.total_mes}h</td>
+        <td style="font-size:20px;font-weight:700;color:var(--primary)">${fmtHoras(r.total_mes)}</td>
         <td><div class="semana-detail">${semanasHtml || '<span style="color:#9ca3af">—</span>'}</div></td>
         <td><span class="badge ${badgeClass}">${badgeText}</span></td>
       </tr>`;
@@ -481,7 +485,7 @@ function renderHoras() {
 
       html += `<tr style="${tieneAlerta ? 'background:#fff7ed' : ''}">
         <td style="font-weight:600">${r.nombre}</td>
-        <td style="text-align:center;font-size:22px;font-weight:700;color:${color}">${r.total_mes}h</td>
+        <td style="text-align:center;font-size:22px;font-weight:700;color:${color}">${fmtHoras(r.total_mes)}</td>
         <td style="min-width:140px">
           <div style="background:#e5e7eb;border-radius:99px;height:10px;overflow:hidden;">
             <div style="background:${color};width:${pct}%;height:100%;border-radius:99px;transition:width .3s"></div>
@@ -524,7 +528,7 @@ async function guardarParamedico() {
 
   const url = id ? `/api/paramedicos/${id}` : '/api/paramedicos';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -569,6 +573,7 @@ function abrirModalAmbulancia(amb = null) {
   document.getElementById('ambulancia-id').value = amb?.id || '';
   document.getElementById('ambulancia-nombre').value = amb?.nombre || '';
   document.getElementById('ambulancia-codigo').value = amb?.codigo || '';
+  document.getElementById('ambulancia-horas').value = amb?.horas_turno || '11';
   document.getElementById('modal-ambulancia').classList.add('open');
 }
 
@@ -576,12 +581,13 @@ async function guardarAmbulancia() {
   const id = document.getElementById('ambulancia-id').value;
   const nombre = document.getElementById('ambulancia-nombre').value.trim();
   const codigo = document.getElementById('ambulancia-codigo').value.trim();
+  const horas_turno = parseInt(document.getElementById('ambulancia-horas').value) || 11;
 
   if (!nombre || !codigo) { toast('Nombre y código son requeridos', 'error'); return; }
 
   const url = id ? `/api/ambulancias/${id}` : '/api/ambulancias';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
