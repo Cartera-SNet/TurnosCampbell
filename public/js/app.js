@@ -1,3 +1,37 @@
+
+// ═══════════════════════════════════
+// RESPONSIVE — Menú móvil + barra inferior
+// ═══════════════════════════════════
+function navegarA(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  document.querySelectorAll('.nav-btn,.mobile-menu-item,.bottom-nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === page);
+  });
+  if (page === 'paramedicos') renderParamedicos();
+  if (page === 'ambulancias') renderAmbulanciasList();
+  window.scrollTo(0, 0);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburger  = document.getElementById('hamburger-btn');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const overlay    = document.getElementById('mobile-overlay');
+
+  function abrirMenu()  { mobileMenu.classList.add('open'); overlay.classList.add('open'); hamburger.classList.add('open'); }
+  function cerrarMenu() { mobileMenu.classList.remove('open'); overlay.classList.remove('open'); hamburger.classList.remove('open'); }
+
+  hamburger?.addEventListener('click', () => mobileMenu.classList.contains('open') ? cerrarMenu() : abrirMenu());
+  overlay?.addEventListener('click', cerrarMenu);
+
+  document.querySelectorAll('.mobile-menu-item').forEach(btn => {
+    btn.addEventListener('click', () => { navegarA(btn.dataset.page); cerrarMenu(); });
+  });
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => navegarA(btn.dataset.page));
+  });
+});
+
 function fmtHoras(n) {
   return Number(n).toLocaleString('es-CO') + 'h';
 }
@@ -19,16 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   poblarSelectores();
   await cargarDatos();
   
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('page-' + btn.dataset.page).classList.add('active');
-      if (btn.dataset.page === 'paramedicos') renderParamedicos();
-      if (btn.dataset.page === 'ambulancias') renderAmbulanciasList();
-    });
-  });
+    document.querySelectorAll('.nav-btn').forEach(btn => { btn.addEventListener('click', () => navegarA(btn.dataset.page)); });
 
   cargarMalla();
 });
