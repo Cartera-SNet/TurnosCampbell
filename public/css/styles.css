@@ -203,6 +203,10 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
   /* Espacio para barra inferior */
   main { padding: 12px 12px calc(var(--bnh) + 12px); }
 
+  /* Malla con scroll horizontal en móvil */
+  .malla-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .malla-table { min-width: 600px; }
+
   /* Header compacto */
   .logo-text .fundacion { display: none; }
 
