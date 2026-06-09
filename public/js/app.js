@@ -225,14 +225,22 @@ async function cargarMalla() {
       <span style="color:#6b7280;font-size:12px">Límite semanal: ${limiteSemanal}h</span>
     </div>
     <div class="malla-table-wrapper">
-    <table class="malla-table">
+    <table class="malla-table" style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:70px">
+        <col style="width:60px">
+        <col style="width:160px">
+        <col style="width:150px">
+        <col>
+        <col style="width:80px">
+      </colgroup>
       <thead><tr>
-        <th style="width:55px">Día</th>
-        <th style="width:50px">Fecha</th>
-        <th style="width:130px">Ambulancia</th>
-        <th style="width:140px">Turno</th>
-        <th>Paramédicos</th>
-        <th style="width:70px">Acciones</th>
+        <th style="text-align:left;padding-left:12px">Día</th>
+        <th style="text-align:left">Fecha</th>
+        <th style="text-align:left">Ambulancia</th>
+        <th style="text-align:center">Turno</th>
+        <th style="text-align:left">Paramédicos</th>
+        <th style="text-align:center">Acciones</th>
       </tr></thead>
       <tbody>
   `;
@@ -279,23 +287,23 @@ async function cargarMalla() {
           const t = row.data;
           const paraStr = t.paramedicos.map(p => p.nombre.split(' ')[0]).join(', ');
           html += `<tr style="${rowStyle}">
-            <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-right:4px">${isFirst ? diaSemana : ''}</td>
-            <td style="font-weight:600;border-top:${bt};color:${dayColor};padding-right:8px">${isFirst ? diaNum : ''}</td>
-            <td style="border-top:${bt}"><span style="font-size:12px;font-weight:500">${t.ambulancia_codigo}</span></td>
-            <td style="border-top:${bt}"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
-            <td class="cell-paramedico" style="border-top:${bt}">${paraStr}</td>
-            <td style="border-top:${bt}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
+            <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-left:12px">${isFirst ? diaSemana : ''}</td>
+            <td style="font-weight:600;border-top:${bt};color:${dayColor}">${isFirst ? diaNum : ''}</td>
+            <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-size:13px;font-weight:500">${t.ambulancia_codigo}</span></td>
+            <td style="border-top:${bt};text-align:center"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
+            <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${paraStr}</td>
+            <td style="border-top:${bt};text-align:center"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
           </tr>`;
         } else {
           const e = row.data;
           const pm = paramedicos.find(p => p.id === e.paramedico_id);
           html += `<tr style="${rowStyle}">
-            <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-right:4px">${isFirst ? diaSemana : ''}</td>
-            <td style="font-weight:600;border-top:${bt};color:${dayColor};padding-right:8px">${isFirst ? diaNum : ''}</td>
-            <td style="border-top:${bt}"><span style="font-size:12px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
-            <td style="border-top:${bt}"><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
-            <td class="cell-paramedico" style="border-top:${bt}">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
-            <td style="border-top:${bt}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
+            <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-left:12px">${isFirst ? diaSemana : ''}</td>
+            <td style="font-weight:600;border-top:${bt};color:${dayColor}">${isFirst ? diaNum : ''}</td>
+            <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-size:13px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
+            <td style="border-top:${bt};text-align:center"><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
+            <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
+            <td style="border-top:${bt};text-align:center"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
           </tr>`;
         }
       });
