@@ -1,4 +1,33 @@
 
+// ═══════════════════════════════════════════════════════
+// SEGURIDAD — BACKUP_KEY requerida para modificar datos
+// ═══════════════════════════════════════════════════════
+let _claveVerificada = false;
+let _claveTimer = null;
+
+async function verificarClaveAccion(callback) {
+  if (_claveVerificada) { callback(); return; }
+
+  const clave = prompt('🔑 Ingresá la clave de administrador para continuar:');
+  if (!clave) return;
+
+  try {
+    const res = await fetch('/api/backup/info', { headers: { 'x-backup-key': clave } });
+    if (res.ok) {
+      _claveVerificada = true;
+      // Auto-expirar la sesión en 30 minutos
+      clearTimeout(_claveTimer);
+      _claveTimer = setTimeout(() => { _claveVerificada = false; }, 30 * 60 * 1000);
+      callback();
+    } else {
+      toast('❌ Clave incorrecta. Acceso denegado.', 'error');
+    }
+  } catch (e) {
+    toast('❌ Error al verificar la clave.', 'error');
+  }
+}
+
+
 // ═══════════════════════════════════
 // RESPONSIVE — Menú móvil + barra inferior
 // ═══════════════════════════════════
@@ -290,6 +319,8 @@ function agregarFilaParamedico() {
 }
 
 async function guardarTurno() {
+  await new Promise((resolve) => verificarClaveAccion(resolve));
+  if (!_claveVerificada) return;
   const fecha = document.getElementById('turno-fecha').value;
   const ambSel = document.getElementById('turno-ambulancia');
   const ambulancia_id = ambSel.value;
@@ -322,6 +353,7 @@ async function guardarTurno() {
 }
 
 async function eliminarTurno(id) {
+  verificarClaveAccion(async () => {
   if (!confirm('¿Eliminar este turno?')) return;
   await fetch('/api/turnos/' + id, { method: 'DELETE' });
   toast('Turno eliminado');
@@ -545,6 +577,8 @@ function abrirModalParamedico(pm = null) {
 }
 
 async function guardarParamedico() {
+  await new Promise((resolve) => verificarClaveAccion(resolve));
+  if (!_claveVerificada) return;
   const id = document.getElementById('paramedico-id').value;
   const nombre = document.getElementById('paramedico-nombre').value.trim();
   const codigo = document.getElementById('paramedico-codigo').value.trim();
@@ -565,27 +599,41 @@ async function guardarParamedico() {
 
 async function eliminarParamedico(id) {
   if (!confirm('¿Eliminar este paramédico?')) return;
+  verificarClaveAccion(async () => {
   await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
   toast('Paramédico eliminado');
   await cargarDatos();
   renderParamedicos();
+  });
 }
 
 function renderParamedicos() {
   const container = document.getElementById('paramedicos-container');
+  const lista = _busquedaParamedicos
+    ? paramedicos.filter(p => p.nombre.toLowerCase().includes(_busquedaParamedicos) || p.codigo.toLowerCase().includes(_busquedaParamedicos))
+    : paramedicos;
   if (!paramedicos.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">👨‍⚕️</div><p>No hay paramédicos registrados</p></div>`;
     return;
   }
-  container.innerHTML = `<div class="cards-grid">${paramedicos.map(p => `
+  if (!lista.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No se encontraron resultados para "<strong>${_busquedaParamedicos}</strong>"</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="cards-grid">${lista.map(p => `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">👨‍⚕️ ${p.nombre}</div>
-        <span class="card-code">${p.codigo}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👨‍⚕️</div>
+          <div style="min-width:0">
+            <div class="card-title" style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+            <span class="card-code" style="margin-top:3px;display:inline-block">${p.codigo}</span>
+          </div>
+        </div>
       </div>
-      <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
-        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
+      <div class="card-actions" style="margin-top:12px">
+        <button class="btn-secondary" style="flex:1" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Editar</button>
+        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">🗑</button>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -603,6 +651,8 @@ function abrirModalAmbulancia(amb = null) {
 }
 
 async function guardarAmbulancia() {
+  await new Promise((resolve) => verificarClaveAccion(resolve));
+  if (!_claveVerificada) return;
   const id = document.getElementById('ambulancia-id').value;
   const nombre = document.getElementById('ambulancia-nombre').value.trim();
   const codigo = document.getElementById('ambulancia-codigo').value.trim();
@@ -624,27 +674,44 @@ async function guardarAmbulancia() {
 
 async function eliminarAmbulancia(id) {
   if (!confirm('¿Eliminar esta ambulancia?')) return;
+  verificarClaveAccion(async () => {
   await fetch('/api/ambulancias/' + id, { method: 'DELETE' });
   toast('Ambulancia eliminada');
   await cargarDatos();
   renderAmbulanciasList();
+  });
 }
 
 function renderAmbulanciasList() {
   const container = document.getElementById('ambulancias-container');
+  const lista = _busquedaAmbulancias
+    ? ambulancias.filter(a => a.nombre.toLowerCase().includes(_busquedaAmbulancias) || a.codigo.toLowerCase().includes(_busquedaAmbulancias))
+    : ambulancias;
   if (!ambulancias.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">🚑</div><p>No hay ambulancias registradas</p></div>`;
     return;
   }
-  container.innerHTML = `<div class="cards-grid">${ambulancias.map(a => `
+  if (!lista.length) {
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No se encontraron resultados para "<strong>${_busquedaAmbulancias}</strong>"</p></div>`;
+    return;
+  }
+  container.innerHTML = `<div class="cards-grid">${lista.map(a => `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🚑 ${a.nombre}</div>
-        <span class="card-code">${a.codigo}</span>
+        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+          <div style="width:40px;height:40px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🚑</div>
+          <div style="min-width:0">
+            <div class="card-title" style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+            <div style="display:flex;gap:6px;margin-top:3px;align-items:center;flex-wrap:wrap">
+              <span class="card-code">${a.codigo}</span>
+              <span style="font-size:11px;color:var(--text-muted)">${a.horas_turno || 11}h/turno</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
-        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
+      <div class="card-actions" style="margin-top:12px">
+        <button class="btn-secondary" style="flex:1" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">✏️ Editar</button>
+        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">🗑</button>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -823,3 +890,18 @@ async function restaurarBackup() {
     alert('Error de conexión: ' + e.message);
   }
 }
+// ═══════════════════════════════════════════════════════
+// BÚSQUEDA en Paramédicos y Ambulancias
+// ═══════════════════════════════════════════════════════
+let _busquedaParamedicos = '';
+let _busquedaAmbulancias = '';
+
+function filtrarParamedicos(q) {
+  _busquedaParamedicos = q.toLowerCase();
+  renderParamedicos();
+}
+function filtrarAmbulancias(q) {
+  _busquedaAmbulancias = q.toLowerCase();
+  renderAmbulanciasList();
+}
+
