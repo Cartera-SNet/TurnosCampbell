@@ -225,7 +225,15 @@ async function cargarMalla() {
       <span style="color:#6b7280;font-size:12px">Límite semanal: ${limiteSemanal}h</span>
     </div>
     <div class="malla-table-wrapper">
-    <table class="malla-table">
+    <table class="malla-table" style="table-layout:fixed;width:100%">
+      <colgroup>
+        <col style="width:55px">
+        <col style="width:45px">
+        <col style="width:120px">
+        <col style="width:130px">
+        <col style="width:auto">
+        <col style="width:60px">
+      </colgroup>
       <thead><tr>
         <th>Día</th><th>Fecha</th><th>Ambulancia</th><th>Turno</th><th>Paramédicos</th><th>Acciones</th>
       </tr></thead>
