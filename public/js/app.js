@@ -730,9 +730,9 @@ function renderAmbulanciasList() {
         <span class="card-code">${a.codigo}</span>
       </div>
       <div style="margin-top:8px">
-        <span style="display:inline-flex;align-items:center;gap:5px;background:${(a.horas_turno||11)<=8?'#FDE8E8':'#EAF4EE'};color:${(a.horas_turno||11)<=8?'#C62828':'#1B5E37'};border:1px solid ${(a.horas_turno||11)<=8?'#F5C6C6':'#A5D6B5'};border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600">
-          <span style="width:7px;height:7px;border-radius:50%;background:${(a.horas_turno||11)<=8?'#C62828':'#1B5E37'};display:inline-block"></span>
-          ${(a.horas_turno||11)}h por turno
+        <span style="display:inline-flex;align-items:center;gap:5px;background:#EAF4EE;color:#1B5E37;border:1px solid #A5D6B5;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600">
+          <span style="width:7px;height:7px;border-radius:50%;background:#1B5E37;display:inline-block"></span>
+          ${a.horas_turno||11}h por turno
         </span>
       </div>
       <div class="card-actions">
