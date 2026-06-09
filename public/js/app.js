@@ -256,31 +256,42 @@ async function cargarMalla() {
         <td><button class="btn-icon" style="font-size:12px;padding:4px 8px;width:auto" onclick="abrirModalTurno('${fecha}')">+</button></td>
       </tr>`;
     } else {
-      let firstRow = true;
       const totalFilas = data.turnos.length + data.extras.length;
+      const diaNum = parseInt(fecha.split('-')[2]);
+      const borderTop = '2px solid #e5e7eb';
 
       data.turnos.forEach((t, idx) => {
         const paraStr = t.paramedicos.map(p => p.nombre.split(' ')[0]).join(', ');
+        const isFirst = idx === 0;
         html += `<tr style="${rowStyle}">
-          ${firstRow ? `<td rowspan="${totalFilas}" style="font-weight:600">${diaSemana}</td><td rowspan="${totalFilas}" style="font-weight:600">${parseInt(fecha.split('-')[2])}</td>` : ''}
-          <td><span style="font-size:12px;font-weight:500">${t.ambulancia_codigo}</span></td>
-          <td><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
-          <td class="cell-paramedico">${paraStr}</td>
-          <td><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
+          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'};color:${esFinDeSemana?'#6b7280':'var(--text)'};white-space:nowrap">
+            ${isFirst ? diaSemana : ''}
+          </td>
+          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'};color:${esFinDeSemana?'#6b7280':'var(--text)'}">
+            ${isFirst ? diaNum : ''}
+          </td>
+          <td style="border-top:${isFirst ? borderTop : 'none'}"><span style="font-size:12px;font-weight:500">${t.ambulancia_codigo}</span></td>
+          <td style="border-top:${isFirst ? borderTop : 'none'}"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
+          <td class="cell-paramedico" style="border-top:${isFirst ? borderTop : 'none'}">${paraStr}</td>
+          <td style="border-top:${isFirst ? borderTop : 'none'}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
         </tr>`;
-        firstRow = false;
       });
 
-      data.extras.forEach(e => {
+      data.extras.forEach((e, idx) => {
         const pm = paramedicos.find(p => p.id === e.paramedico_id);
+        const isFirst = data.turnos.length === 0 && idx === 0;
         html += `<tr style="${rowStyle}">
-          ${firstRow ? `<td rowspan="${totalFilas}" style="font-weight:600">${diaSemana}</td><td rowspan="${totalFilas}" style="font-weight:600">${parseInt(fecha.split('-')[2])}</td>` : ''}
-          <td><span style="font-size:12px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
-          <td><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
-          <td class="cell-paramedico">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
-          <td><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
+          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'};color:${esFinDeSemana?'#6b7280':'var(--text)'}">
+            ${isFirst ? diaSemana : ''}
+          </td>
+          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'}">
+            ${isFirst ? diaNum : ''}
+          </td>
+          <td style="border-top:${isFirst ? borderTop : 'none'}"><span style="font-size:12px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
+          <td style="border-top:${isFirst ? borderTop : 'none'}"><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
+          <td class="cell-paramedico" style="border-top:${isFirst ? borderTop : 'none'}">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
+          <td style="border-top:${isFirst ? borderTop : 'none'}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
         </tr>`;
-        firstRow = false;
       });
     }
   });
@@ -344,10 +355,6 @@ function agregarFilaParamedico() {
 }
 
 async function guardarTurno() {
-  if (!_claveVerificada) {
-    verificarClaveAccion(() => guardarTurno());
-    return;
-  }
   const fecha = document.getElementById('turno-fecha').value;
   const ambSel = document.getElementById('turno-ambulancia');
   const ambulancia_id = ambSel.value;
@@ -381,18 +388,18 @@ async function guardarTurno() {
 
 async function eliminarTurno(id) {
   if (!confirm('¿Eliminar este turno?')) return;
-  verificarClaveAccion(async () => {
-    await fetch('/api/turnos/' + id, { method: 'DELETE' });
-    toast('Turno eliminado');
-    cargarMalla();
-  });
+  await fetch('/api/turnos/' + id, { method: 'DELETE' });
+  toast('Turno eliminado');
+  cargarMalla();
 }
 
 async function eliminarExtra(id) {
   if (!confirm('¿Eliminar este registro extra?')) return;
-  await fetch('/api/extras/' + id, { method: 'DELETE' });
-  toast('Extra eliminado');
-  cargarMalla();
+  verificarClaveAccion(async () => {
+    await fetch('/api/extras/' + id, { method: 'DELETE' });
+    toast('Extra eliminado');
+    cargarMalla();
+  });
 }
 
 // ============================================================
@@ -421,6 +428,10 @@ function abrirModalExtra() {
 }
 
 async function guardarExtra() {
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => guardarExtra());
+    return;
+  }
   const fecha = document.getElementById('extra-fecha').value;
   const pmSel = document.getElementById('extra-paramedico');
   const paramedico_id = pmSel.value;
