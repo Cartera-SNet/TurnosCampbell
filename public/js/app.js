@@ -323,8 +323,10 @@ function agregarFilaParamedico() {
 }
 
 async function guardarTurno() {
-  await new Promise((resolve) => verificarClaveAccion(resolve));
-  if (!_claveVerificada) return;
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => guardarTurno());
+    return;
+  }
   const fecha = document.getElementById('turno-fecha').value;
   const ambSel = document.getElementById('turno-ambulancia');
   const ambulancia_id = ambSel.value;
@@ -357,11 +359,12 @@ async function guardarTurno() {
 }
 
 async function eliminarTurno(id) {
-  verificarClaveAccion(async () => {
   if (!confirm('¿Eliminar este turno?')) return;
-  await fetch('/api/turnos/' + id, { method: 'DELETE' });
-  toast('Turno eliminado');
-  cargarMalla();
+  verificarClaveAccion(async () => {
+    await fetch('/api/turnos/' + id, { method: 'DELETE' });
+    toast('Turno eliminado');
+    cargarMalla();
+  });
 }
 
 async function eliminarExtra(id) {
@@ -581,8 +584,10 @@ function abrirModalParamedico(pm = null) {
 }
 
 async function guardarParamedico() {
-  await new Promise((resolve) => verificarClaveAccion(resolve));
-  if (!_claveVerificada) return;
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => guardarParamedico());
+    return;
+  }
   const id = document.getElementById('paramedico-id').value;
   const nombre = document.getElementById('paramedico-nombre').value.trim();
   const codigo = document.getElementById('paramedico-codigo').value.trim();
@@ -655,8 +660,10 @@ function abrirModalAmbulancia(amb = null) {
 }
 
 async function guardarAmbulancia() {
-  await new Promise((resolve) => verificarClaveAccion(resolve));
-  if (!_claveVerificada) return;
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => guardarAmbulancia());
+    return;
+  }
   const id = document.getElementById('ambulancia-id').value;
   const nombre = document.getElementById('ambulancia-nombre').value.trim();
   const codigo = document.getElementById('ambulancia-codigo').value.trim();
