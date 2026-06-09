@@ -42,24 +42,7 @@ function navegarA(page) {
   window.scrollTo(0, 0);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const hamburger  = document.getElementById('hamburger-btn');
-  const mobileMenu = document.getElementById('mobile-menu');
-  const overlay    = document.getElementById('mobile-overlay');
 
-  function abrirMenu()  { mobileMenu.classList.add('open'); overlay.classList.add('open'); hamburger.classList.add('open'); }
-  function cerrarMenu() { mobileMenu.classList.remove('open'); overlay.classList.remove('open'); hamburger.classList.remove('open'); }
-
-  hamburger?.addEventListener('click', () => mobileMenu.classList.contains('open') ? cerrarMenu() : abrirMenu());
-  overlay?.addEventListener('click', cerrarMenu);
-
-  document.querySelectorAll('.mobile-menu-item').forEach(btn => {
-    btn.addEventListener('click', () => { navegarA(btn.dataset.page); cerrarMenu(); });
-  });
-  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => navegarA(btn.dataset.page));
-  });
-});
 
 function fmtHoras(n) {
   return Number(n).toLocaleString('es-CO') + 'h';
@@ -79,12 +62,33 @@ const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', async () => {
+  // ── Inicialización principal ──
   poblarSelectores();
   await cargarDatos();
-  
-    document.querySelectorAll('.nav-btn').forEach(btn => { btn.addEventListener('click', () => navegarA(btn.dataset.page)); });
-
   cargarMalla();
+
+  // ── Nav desktop ──
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => navegarA(btn.dataset.page));
+  });
+
+  // ── Menú móvil hamburguesa ──
+  const hamburger  = document.getElementById('hamburger-btn');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const overlay    = document.getElementById('mobile-overlay');
+
+  function abrirMenu()  { mobileMenu?.classList.add('open'); overlay?.classList.add('open'); hamburger?.classList.add('open'); }
+  function cerrarMenu() { mobileMenu?.classList.remove('open'); overlay?.classList.remove('open'); hamburger?.classList.remove('open'); }
+
+  hamburger?.addEventListener('click', () => mobileMenu?.classList.contains('open') ? cerrarMenu() : abrirMenu());
+  overlay?.addEventListener('click', cerrarMenu);
+
+  document.querySelectorAll('.mobile-menu-item').forEach(btn => {
+    btn.addEventListener('click', () => { navegarA(btn.dataset.page); cerrarMenu(); });
+  });
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => navegarA(btn.dataset.page));
+  });
 });
 
 function poblarSelectores() {
