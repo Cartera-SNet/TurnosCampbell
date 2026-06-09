@@ -626,28 +626,22 @@ function renderParamedicos() {
     return;
   }
   if (!lista.length) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No se encontraron resultados para "<strong>${_busquedaParamedicos}</strong>"</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Sin resultados para "<strong>${_busquedaParamedicos}</strong>"</p></div>`;
     return;
   }
-  const iniciales = (nombre) => nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-
   container.innerHTML = `<div class="cards-grid">${lista.map(p => `
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="background:#1B5E37;padding:18px 16px 14px;display:flex;align-items:center;gap:12px">
-        <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-1px">
-          ${iniciales(p.nombre)}
-        </div>
-        <div style="min-width:0;flex:1">
-          <div style="font-size:13.5px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${p.codigo}</div>
-        </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">👨‍⚕️ ${p.nombre}</div>
+        <span class="card-code">${p.codigo}</span>
       </div>
-      <div style="padding:12px 14px;display:flex;gap:8px">
-        <button class="btn-secondary" style="flex:1;font-size:12.5px;padding:7px 10px" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Editar</button>
-        <button class="btn-danger" style="padding:7px 12px;font-size:12.5px" onclick="eliminarParamedico('${p.id}')">🗑️</button>
+      <div class="card-actions">
+        <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
       </div>
     </div>`).join('')}</div>`;
 }
+
 
 // ============================================================
 // AMBULANCIAS
@@ -705,32 +699,22 @@ function renderAmbulanciasList() {
     return;
   }
   if (!lista.length) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No se encontraron resultados para "<strong>${_busquedaAmbulancias}</strong>"</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Sin resultados para "<strong>${_busquedaAmbulancias}</strong>"</p></div>`;
     return;
   }
-  const horasColor = (h) => h <= 8 ? '#C62828' : '#1B5E37';
-  const horasLabel = (h) => (h || 11) <= 8 ? '8h · Urgencias' : '11h · Estándar';
-
   container.innerHTML = `<div class="cards-grid">${lista.map(a => `
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="background:var(--verde);padding:18px 16px 14px;display:flex;align-items:center;gap:12px;position:relative">
-        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
-          🚑
-        </div>
-        <div style="min-width:0;flex:1">
-          <div style="font-size:13.5px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
-          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${a.codigo}</div>
-        </div>
-        <div style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:700;color:white;white-space:nowrap;flex-shrink:0">
-          ${horasLabel(a.horas_turno)}
-        </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚑 ${a.nombre}</div>
+        <span class="card-code">${a.codigo}</span>
       </div>
-      <div style="padding:12px 14px;display:flex;gap:8px">
-        <button class="btn-secondary" style="flex:1;font-size:12.5px;padding:7px 10px" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">✏️ Editar</button>
-        <button class="btn-danger" style="padding:7px 12px;font-size:12.5px" onclick="eliminarAmbulancia('${a.id}')">🗑️</button>
+      <div class="card-actions">
+        <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
       </div>
     </div>`).join('')}</div>`;
 }
+
 
 // ============================================================
 // IMPORTACIÓN MASIVA
