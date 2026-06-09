@@ -629,20 +629,22 @@ function renderParamedicos() {
     container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No se encontraron resultados para "<strong>${_busquedaParamedicos}</strong>"</p></div>`;
     return;
   }
+  const iniciales = (nombre) => nombre.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
   container.innerHTML = `<div class="cards-grid">${lista.map(p => `
-    <div class="card">
-      <div class="card-header">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-          <div style="width:40px;height:40px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👨‍⚕️</div>
-          <div style="min-width:0">
-            <div class="card-title" style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
-            <span class="card-code" style="margin-top:3px;display:inline-block">${p.codigo}</span>
-          </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="background:#1B5E37;padding:18px 16px 14px;display:flex;align-items:center;gap:12px">
+        <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:white;flex-shrink:0;letter-spacing:-1px">
+          ${iniciales(p.nombre)}
+        </div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13.5px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.nombre}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${p.codigo}</div>
         </div>
       </div>
-      <div class="card-actions" style="margin-top:12px">
-        <button class="btn-secondary" style="flex:1" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Editar</button>
-        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">🗑</button>
+      <div style="padding:12px 14px;display:flex;gap:8px">
+        <button class="btn-secondary" style="flex:1;font-size:12.5px;padding:7px 10px" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">✏️ Editar</button>
+        <button class="btn-danger" style="padding:7px 12px;font-size:12.5px" onclick="eliminarParamedico('${p.id}')">🗑️</button>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -706,23 +708,26 @@ function renderAmbulanciasList() {
     container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>No se encontraron resultados para "<strong>${_busquedaAmbulancias}</strong>"</p></div>`;
     return;
   }
+  const horasColor = (h) => h <= 8 ? '#C62828' : '#1B5E37';
+  const horasLabel = (h) => (h || 11) <= 8 ? '8h · Urgencias' : '11h · Estándar';
+
   container.innerHTML = `<div class="cards-grid">${lista.map(a => `
-    <div class="card">
-      <div class="card-header">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-          <div style="width:40px;height:40px;border-radius:50%;background:var(--verde-bg);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🚑</div>
-          <div style="min-width:0">
-            <div class="card-title" style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
-            <div style="display:flex;gap:6px;margin-top:3px;align-items:center;flex-wrap:wrap">
-              <span class="card-code">${a.codigo}</span>
-              <span style="font-size:11px;color:var(--text-muted)">${a.horas_turno || 11}h/turno</span>
-            </div>
-          </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="background:var(--verde);padding:18px 16px 14px;display:flex;align-items:center;gap:12px;position:relative">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">
+          🚑
+        </div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:13.5px;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nombre}</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:2px">${a.codigo}</div>
+        </div>
+        <div style="background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:10.5px;font-weight:700;color:white;white-space:nowrap;flex-shrink:0">
+          ${horasLabel(a.horas_turno)}
         </div>
       </div>
-      <div class="card-actions" style="margin-top:12px">
-        <button class="btn-secondary" style="flex:1" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">✏️ Editar</button>
-        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">🗑</button>
+      <div style="padding:12px 14px;display:flex;gap:8px">
+        <button class="btn-secondary" style="flex:1;font-size:12.5px;padding:7px 10px" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">✏️ Editar</button>
+        <button class="btn-danger" style="padding:7px 12px;font-size:12.5px" onclick="eliminarAmbulancia('${a.id}')">🗑️</button>
       </div>
     </div>`).join('')}</div>`;
 }
