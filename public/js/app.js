@@ -260,38 +260,39 @@ async function cargarMalla() {
       const diaNum = parseInt(fecha.split('-')[2]);
       const borderTop = '2px solid #e5e7eb';
 
-      data.turnos.forEach((t, idx) => {
-        const paraStr = t.paramedicos.map(p => p.nombre.split(' ')[0]).join(', ');
-        const isFirst = idx === 0;
-        html += `<tr style="${rowStyle}">
-          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'};color:${esFinDeSemana?'#6b7280':'var(--text)'};white-space:nowrap">
-            ${isFirst ? diaSemana : ''}
-          </td>
-          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'};color:${esFinDeSemana?'#6b7280':'var(--text)'}">
-            ${isFirst ? diaNum : ''}
-          </td>
-          <td style="border-top:${isFirst ? borderTop : 'none'}"><span style="font-size:12px;font-weight:500">${t.ambulancia_codigo}</span></td>
-          <td style="border-top:${isFirst ? borderTop : 'none'}"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
-          <td class="cell-paramedico" style="border-top:${isFirst ? borderTop : 'none'}">${paraStr}</td>
-          <td style="border-top:${isFirst ? borderTop : 'none'}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
-        </tr>`;
-      });
+      const allRows = [
+        ...data.turnos.map(t => ({ tipo: 'turno', data: t })),
+        ...data.extras.map(e => ({ tipo: 'extra', data: e }))
+      ];
 
-      data.extras.forEach((e, idx) => {
-        const pm = paramedicos.find(p => p.id === e.paramedico_id);
-        const isFirst = data.turnos.length === 0 && idx === 0;
-        html += `<tr style="${rowStyle}">
-          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'};color:${esFinDeSemana?'#6b7280':'var(--text)'}">
-            ${isFirst ? diaSemana : ''}
-          </td>
-          <td style="font-weight:600;vertical-align:middle;border-top:${isFirst ? borderTop : 'none'}">
-            ${isFirst ? diaNum : ''}
-          </td>
-          <td style="border-top:${isFirst ? borderTop : 'none'}"><span style="font-size:12px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
-          <td style="border-top:${isFirst ? borderTop : 'none'}"><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
-          <td class="cell-paramedico" style="border-top:${isFirst ? borderTop : 'none'}">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
-          <td style="border-top:${isFirst ? borderTop : 'none'}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
-        </tr>`;
+      allRows.forEach((row, idx) => {
+        const isFirst = idx === 0;
+        const bt = isFirst ? borderTop : 'none';
+        const dayColor = esFinDeSemana ? '#9ca3af' : 'var(--text)';
+
+        if (row.tipo === 'turno') {
+          const t = row.data;
+          const paraStr = t.paramedicos.map(p => p.nombre.split(' ')[0]).join(', ');
+          html += `<tr style="${rowStyle}">
+            <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-right:4px">${isFirst ? diaSemana : ''}</td>
+            <td style="font-weight:600;border-top:${bt};color:${dayColor};padding-right:8px">${isFirst ? diaNum : ''}</td>
+            <td style="border-top:${bt}"><span style="font-size:12px;font-weight:500">${t.ambulancia_codigo}</span></td>
+            <td style="border-top:${bt}"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
+            <td class="cell-paramedico" style="border-top:${bt}">${paraStr}</td>
+            <td style="border-top:${bt}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
+          </tr>`;
+        } else {
+          const e = row.data;
+          const pm = paramedicos.find(p => p.id === e.paramedico_id);
+          html += `<tr style="${rowStyle}">
+            <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-right:4px">${isFirst ? diaSemana : ''}</td>
+            <td style="font-weight:600;border-top:${bt};color:${dayColor};padding-right:8px">${isFirst ? diaNum : ''}</td>
+            <td style="border-top:${bt}"><span style="font-size:12px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
+            <td style="border-top:${bt}"><span class="turno-chip badge-extra">⚡ Extra · ${e.horas}h</span></td>
+            <td class="cell-paramedico" style="border-top:${bt}">${pm?.nombre?.split(' ')[0] || e.paramedico_nombre || ''} ${e.nota ? `<em>(${e.nota})</em>` : ''}</td>
+            <td style="border-top:${bt}"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarExtra('${e.id}')">✕</button></td>
+          </tr>`;
+        }
       });
     }
   });
