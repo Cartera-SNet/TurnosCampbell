@@ -5,25 +5,46 @@
 let _claveVerificada = false;
 let _claveTimer = null;
 
-async function verificarClaveAccion(callback) {
-  if (_claveVerificada) { callback(); return; }
+let _callbackPendiente = null;
 
-  const clave = prompt('🔑 Ingresá la clave de administrador para continuar:');
+function verificarClaveAccion(callback) {
+  if (_claveVerificada) { callback(); return; }
+  _callbackPendiente = callback;
+  document.getElementById('input-clave-admin').value = '';
+  document.getElementById('clave-error').style.display = 'none';
+  document.getElementById('modal-clave').classList.add('open');
+  setTimeout(() => document.getElementById('input-clave-admin').focus(), 100);
+}
+
+function cerrarModalClave() {
+  document.getElementById('modal-clave').classList.remove('open');
+  _callbackPendiente = null;
+}
+
+async function confirmarClave() {
+  const clave = document.getElementById('input-clave-admin').value.trim();
   if (!clave) return;
+
+  const btn = document.querySelector('#modal-clave .btn-primary');
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
 
   try {
     const res = await fetch('/api/backup/info', { headers: { 'x-backup-key': clave } });
     if (res.ok) {
       _claveVerificada = true;
-      // Auto-expirar la sesión en 30 minutos
       clearTimeout(_claveTimer);
       _claveTimer = setTimeout(() => { _claveVerificada = false; }, 30 * 60 * 1000);
-      callback();
+      document.getElementById('modal-clave').classList.remove('open');
+      if (_callbackPendiente) { _callbackPendiente(); _callbackPendiente = null; }
     } else {
-      toast('❌ Clave incorrecta. Acceso denegado.', 'error');
+      document.getElementById('clave-error').style.display = 'block';
     }
   } catch (e) {
-    toast('❌ Error al verificar la clave.', 'error');
+    document.getElementById('clave-error').style.display = 'block';
+  } finally {
+    btn.textContent = 'Confirmar';
+    btn.disabled = false;
   }
 }
 
@@ -708,6 +729,12 @@ function renderAmbulanciasList() {
         <div class="card-title">🚑 ${a.nombre}</div>
         <span class="card-code">${a.codigo}</span>
       </div>
+      <div style="margin-top:8px">
+        <span style="display:inline-flex;align-items:center;gap:5px;background:${(a.horas_turno||11)<=8?'#FDE8E8':'#EAF4EE'};color:${(a.horas_turno||11)<=8?'#C62828':'#1B5E37'};border:1px solid ${(a.horas_turno||11)<=8?'#F5C6C6':'#A5D6B5'};border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600">
+          <span style="width:7px;height:7px;border-radius:50%;background:${(a.horas_turno||11)<=8?'#C62828':'#1B5E37'};display:inline-block"></span>
+          ${(a.horas_turno||11)}h por turno
+        </span>
+      </div>
       <div class="card-actions">
         <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
         <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
@@ -736,6 +763,10 @@ function abrirModalImportar(tipo) {
 async function ejecutarImportacion() {
   const fileInput = document.getElementById('importar-archivo');
   if (!fileInput.files.length) { toast('Seleccioná un archivo Excel primero', 'error'); return; }
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => ejecutarImportacion());
+    return;
+  }
 
   const btn = document.getElementById('btn-importar-confirm');
   btn.disabled = true;

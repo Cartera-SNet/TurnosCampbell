@@ -374,6 +374,29 @@
   <button class="bottom-nav-btn" data-page="backup"><span class="bni">💾</span><span>Backup</span></button>
 </nav>
 
+<!-- Modal de clave de administrador -->
+<div class="modal" id="modal-clave">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2>🔑 Verificación requerida</h2>
+      <button class="modal-close" onclick="cerrarModalClave()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:4px">Ingresá la clave de administrador para continuar.</p>
+      <div class="form-group">
+        <label>Clave</label>
+        <input type="password" id="input-clave-admin" placeholder="••••••••"
+          onkeydown="if(event.key==='Enter') confirmarClave()">
+      </div>
+      <p id="clave-error" style="color:#C62828;font-size:13px;display:none;margin-top:4px">❌ Clave incorrecta. Intentá de nuevo.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalClave()">Cancelar</button>
+      <button class="btn-primary" onclick="confirmarClave()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast"></div>
 <script src="/js/app.js"></script>
 </body>
