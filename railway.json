@@ -1,3 +1,10 @@
 {
-  "sleepApplication": true
+  "deploy": {
+    "numReplicas": 1,
+    "sleepApplication": true,
+    "RestartPolicy": {
+      "type": "ON_FAILURE",
+      "maxRetries": 3
+    }
+  }
 }
