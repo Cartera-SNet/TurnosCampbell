@@ -621,12 +621,25 @@ function cambiarVistaHoras(vista) {
 // ============================================================
 // PARAMÉDICOS
 // ============================================================
+function siguienteCodigoParamedico() {
+  // Buscar el número más alto entre los códigos tipo P001, P0029, POO38, etc.
+  let maxNum = 0;
+  paramedicos.forEach(p => {
+    const m = p.codigo.replace(/[^0-9]/g, '');
+    const n = parseInt(m);
+    if (!isNaN(n) && n > maxNum) maxNum = n;
+  });
+  const siguiente = maxNum + 1;
+  return 'P' + String(siguiente).padStart(4, '0');
+}
+
 function abrirModalParamedico(pm = null) {
   document.getElementById('modal-paramedico-title').textContent = pm ? 'Editar Paramédico' : 'Nuevo Paramédico';
   document.getElementById('paramedico-id').value = pm?.id || '';
   document.getElementById('paramedico-nombre').value = pm?.nombre || '';
-  document.getElementById('paramedico-codigo').value = pm?.codigo || '';
+  document.getElementById('paramedico-codigo').value = pm?.codigo || (pm ? '' : siguienteCodigoParamedico());
   document.getElementById('modal-paramedico').classList.add('open');
+  setTimeout(() => document.getElementById('paramedico-nombre').focus(), 100);
 }
 
 async function guardarParamedico() {
