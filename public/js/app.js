@@ -1,4 +1,3 @@
-
 // ═══════════════════════════════════════════════════════
 // SEGURIDAD — BACKUP_KEY requerida para modificar datos
 // ═══════════════════════════════════════════════════════
@@ -655,7 +654,7 @@ async function guardarParamedico() {
 
   const url = id ? `/api/paramedicos/${id}` : '/api/paramedicos';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno, activa: true }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, activo: true }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -973,4 +972,3 @@ function filtrarAmbulancias(q) {
   _busquedaAmbulancias = q.toLowerCase();
   renderAmbulanciasList();
 }
-
