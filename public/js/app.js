@@ -763,7 +763,7 @@ async function toggleAmbulanciaActiva(id, nuevaActiva) {
       body: JSON.stringify({ nombre: a.nombre, codigo: a.codigo, horas_turno: a.horas_turno, activa: nuevaActiva })
     });
     if (!res.ok) { toast('Error al cambiar el estado', 'error'); return; }
-    toast(nuevaActiva ? '✅ Ambulancia activada' : '⛔ Ambulancia inactivada');
+    toast(nuevaActiva ? '✅ Ambulancia activada' : '⛔ Ambulancia desactivada');
     await cargarDatos();
     renderAmbulanciasList();
   } catch (e) {
@@ -794,7 +794,7 @@ function renderAmbulanciasList() {
       : `<span class="badge-estado badge-activa">✅ Activa</span>`;
     const btnEstado = inactiva
       ? `<button class="btn-success-sm" onclick="toggleAmbulanciaActiva('${a.id}', true)">Activar</button>`
-      : `<button class="btn-warning-sm" onclick="toggleAmbulanciaActiva('${a.id}', false)">Inactivar</button>`;
+      : `<button class="btn-warning-sm" onclick="toggleAmbulanciaActiva('${a.id}', false)">Desactivar</button>`;
     return `
     <div class="card ${inactiva ? 'card-inactiva' : ''}">
       <div class="card-header">
