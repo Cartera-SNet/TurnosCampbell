@@ -95,10 +95,16 @@
           <button class="btn-primary" onclick="abrirModalAmbulancia()">+ Nueva Ambulancia</button>
         </div>
       </div>
-      <div style="margin-bottom:16px;position:relative;max-width:340px">
-        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px">🔍</span>
-        <input type="text" placeholder="Buscar por nombre o código..." oninput="filtrarAmbulancias(this.value)"
-          style="width:100%;padding-left:36px;border-radius:8px;border:1.5px solid var(--verde-borde)">
+      <div style="margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative;max-width:340px;flex:1;min-width:220px">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px">🔍</span>
+          <input type="text" placeholder="Buscar por nombre o código..." oninput="filtrarAmbulancias(this.value)"
+            style="width:100%;padding-left:36px;border-radius:8px;border:1.5px solid var(--verde-borde)">
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none;white-space:nowrap">
+          <input type="checkbox" id="filtro-mostrar-inactivas" onchange="renderAmbulanciasList()" style="cursor:pointer">
+          Mostrar inactivas
+        </label>
       </div>
       <div id="ambulancias-container"></div>
     </section>
@@ -301,10 +307,18 @@
         <input type="text" id="ambulancia-codigo" placeholder="Ej: AMB-01">
       </div>
       <div class="form-group">
-        <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(11 = estándar, 8 = urgencias/hosp.)</small></label>
+        <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(12 = 7-7, 11 = estándar, 8 = urgencias/hosp.)</small></label>
         <select id="ambulancia-horas">
+          <option value="12">12 horas (turno 7 a 7)</option>
           <option value="11">11 horas (estándar)</option>
           <option value="8">8 horas (urgencias / hospitalización)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="ambulancia-estado">
+          <option value="true">✅ Activa</option>
+          <option value="false">⛔ Inactiva</option>
         </select>
       </div>
     </div>

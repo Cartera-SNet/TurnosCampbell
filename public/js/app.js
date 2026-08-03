@@ -710,6 +710,7 @@ function abrirModalAmbulancia(amb = null) {
   document.getElementById('ambulancia-nombre').value = amb?.nombre || '';
   document.getElementById('ambulancia-codigo').value = amb?.codigo || '';
   document.getElementById('ambulancia-horas').value = amb?.horas_turno || '11';
+  document.getElementById('ambulancia-estado').value = (amb?.activa === false) ? 'false' : 'true';
   document.getElementById('modal-ambulancia').classList.add('open');
 }
 
@@ -722,12 +723,13 @@ async function guardarAmbulancia() {
   const nombre = document.getElementById('ambulancia-nombre').value.trim();
   const codigo = document.getElementById('ambulancia-codigo').value.trim();
   const horas_turno = parseInt(document.getElementById('ambulancia-horas').value) || 11;
+  const activa = document.getElementById('ambulancia-estado').value === 'true';
 
   if (!nombre || !codigo) { toast('Nombre y código son requeridos', 'error'); return; }
 
   const url = id ? `/api/ambulancias/${id}` : '/api/ambulancias';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno, activa: true }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno, activa }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -747,36 +749,72 @@ async function eliminarAmbulancia(id) {
   });
 }
 
+async function toggleAmbulanciaActiva(id, nuevaActiva) {
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => toggleAmbulanciaActiva(id, nuevaActiva));
+    return;
+  }
+  const a = ambulancias.find(x => x.id === id);
+  if (!a) return;
+  try {
+    const res = await fetch(`/api/ambulancias/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: a.nombre, codigo: a.codigo, horas_turno: a.horas_turno, activa: nuevaActiva })
+    });
+    if (!res.ok) { toast('Error al cambiar el estado', 'error'); return; }
+    toast(nuevaActiva ? '✅ Ambulancia activada' : '⛔ Ambulancia inactivada');
+    await cargarDatos();
+    renderAmbulanciasList();
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
 function renderAmbulanciasList() {
   const container = document.getElementById('ambulancias-container');
-  const lista = _busquedaAmbulancias
+  const mostrarInactivas = document.getElementById('filtro-mostrar-inactivas')?.checked || false;
+  let lista = _busquedaAmbulancias
     ? ambulancias.filter(a => a.nombre.toLowerCase().includes(_busquedaAmbulancias) || a.codigo.toLowerCase().includes(_busquedaAmbulancias))
     : ambulancias;
+  // Por defecto solo mostrar activas (no rompe turnos ya creados)
+  if (!mostrarInactivas) lista = lista.filter(a => a.activa !== false);
   if (!ambulancias.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">🚑</div><p>No hay ambulancias registradas</p></div>`;
     return;
   }
   if (!lista.length) {
-    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Sin resultados para "<strong>${_busquedaAmbulancias}</strong>"</p></div>`;
+    container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Sin resultados. Tildá "Mostrar inactivas" si buscas una desactivada.</p></div>`;
     return;
   }
-  container.innerHTML = `<div class="cards-grid">${lista.map(a => `
-    <div class="card">
+  container.innerHTML = `<div class="cards-grid">${lista.map(a => {
+    const inactiva = a.activa === false;
+    const badgeEstado = inactiva
+      ? `<span class="badge-estado badge-inactiva">⛔ Inactiva</span>`
+      : `<span class="badge-estado badge-activa">✅ Activa</span>`;
+    const btnEstado = inactiva
+      ? `<button class="btn-success-sm" onclick="toggleAmbulanciaActiva('${a.id}', true)">Activar</button>`
+      : `<button class="btn-warning-sm" onclick="toggleAmbulanciaActiva('${a.id}', false)">Inactivar</button>`;
+    return `
+    <div class="card ${inactiva ? 'card-inactiva' : ''}">
       <div class="card-header">
         <div class="card-title">🚑 ${a.nombre}</div>
         <span class="card-code">${a.codigo}</span>
       </div>
-      <div style="margin-top:8px">
+      <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
         <span style="display:inline-flex;align-items:center;gap:5px;background:#EAF4EE;color:#1B5E37;border:1px solid #A5D6B5;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600">
           <span style="width:7px;height:7px;border-radius:50%;background:#1B5E37;display:inline-block"></span>
           ${a.horas_turno||11}h por turno
         </span>
+        ${badgeEstado}
       </div>
       <div class="card-actions">
         <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
+        ${btnEstado}
         <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
       </div>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}</div>`;
 }
 
 
