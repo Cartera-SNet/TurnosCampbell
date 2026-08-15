@@ -17,6 +17,7 @@ app.use('/api/exportar',    require('./routes/exportar'));
 app.use('/api/pdf',         require('./routes/pdf'));
 app.use('/api/importar',    require('./routes/importar'));
 app.use('/api/backup',      require('./routes/backup'));
+app.use('/api/externo',     require('./routes/externo'));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
