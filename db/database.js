@@ -15,6 +15,7 @@ async function inicializar() {
       id      TEXT PRIMARY KEY,
       nombre  TEXT NOT NULL,
       codigo  TEXT NOT NULL UNIQUE,
+      cedula  TEXT,
       activo  BOOLEAN NOT NULL DEFAULT TRUE,
       creado  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -23,6 +24,7 @@ async function inicializar() {
       id          TEXT PRIMARY KEY,
       nombre      TEXT NOT NULL,
       codigo      TEXT NOT NULL UNIQUE,
+      placa       TEXT,
       activa      BOOLEAN NOT NULL DEFAULT TRUE,
       horas_turno INTEGER NOT NULL DEFAULT 11,
       creado      TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -66,6 +68,9 @@ async function inicializar() {
   `);
   // Agregar horas_turno si no existe (migración)
     await pool.query('ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS horas_turno INTEGER NOT NULL DEFAULT 11').catch(() => {});
+    // Agregar cedula y placa si no existen (migración)
+    await pool.query('ALTER TABLE paramedicos ADD COLUMN IF NOT EXISTS cedula TEXT').catch(() => {});
+    await pool.query('ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS placa TEXT').catch(() => {});
     console.log('[DB] Esquema PostgreSQL listo');
 }
 

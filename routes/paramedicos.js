@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { nombre, codigo } = req.body;
+  const { nombre, codigo, cedula } = req.body;
   if (!nombre || !codigo) return res.status(400).json({ error: 'Nombre y código son requeridos' });
 
   const codigoUp = codigo.trim().toUpperCase();
@@ -20,19 +20,19 @@ router.post('/', async (req, res) => {
     if (existe.rows.length) return res.status(400).json({ error: 'Ya existe un paramédico con ese código' });
 
     const { rows } = await db.query(
-      'INSERT INTO paramedicos (id, nombre, codigo) VALUES ($1, $2, $3) RETURNING *',
-      [randomUUID(), nombre.trim(), codigoUp]
+      'INSERT INTO paramedicos (id, nombre, codigo, cedula) VALUES ($1, $2, $3, $4) RETURNING *',
+      [randomUUID(), nombre.trim(), codigoUp, cedula ? String(cedula).trim() : null]
     );
     res.status(201).json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.put('/:id', async (req, res) => {
-  const { nombre, codigo, activo } = req.body;
+  const { nombre, codigo, activo, cedula } = req.body;
   try {
     const { rowCount } = await db.query(
-      'UPDATE paramedicos SET nombre=$1, codigo=$2, activo=$3 WHERE id=$4',
-      [nombre, codigo?.toUpperCase(), activo, req.params.id]
+      'UPDATE paramedicos SET nombre=$1, codigo=$2, activo=$3, cedula=$4 WHERE id=$5',
+      [nombre, codigo?.toUpperCase(), activo, cedula ? String(cedula).trim() : null, req.params.id]
     );
     res.json({ updated: rowCount });
   } catch (e) { res.status(500).json({ error: e.message }); }

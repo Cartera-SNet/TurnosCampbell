@@ -22,7 +22,7 @@ router.use(validarClaveExterna);
 router.get('/paramedicos', async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT id, nombre, codigo, activo FROM paramedicos ORDER BY codigo ASC'
+      'SELECT id, nombre, codigo, cedula, activo FROM paramedicos ORDER BY codigo ASC'
     );
     res.json(rows);
   } catch (e) {
@@ -34,7 +34,7 @@ router.get('/paramedicos', async (req, res) => {
 router.get('/ambulancias', async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT id, nombre, codigo, activa, horas_turno FROM ambulancias ORDER BY codigo ASC'
+      'SELECT id, nombre, codigo, placa, activa, horas_turno FROM ambulancias ORDER BY codigo ASC'
     );
     res.json(rows);
   } catch (e) {

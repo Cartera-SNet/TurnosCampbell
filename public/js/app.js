@@ -637,6 +637,7 @@ function abrirModalParamedico(pm = null) {
   document.getElementById('paramedico-id').value = pm?.id || '';
   document.getElementById('paramedico-nombre').value = pm?.nombre || '';
   document.getElementById('paramedico-codigo').value = pm?.codigo || (pm ? '' : siguienteCodigoParamedico());
+  document.getElementById('paramedico-cedula').value = pm?.cedula || '';
   document.getElementById('modal-paramedico').classList.add('open');
   setTimeout(() => document.getElementById('paramedico-nombre').focus(), 100);
 }
@@ -649,12 +650,13 @@ async function guardarParamedico() {
   const id = document.getElementById('paramedico-id').value;
   const nombre = document.getElementById('paramedico-nombre').value.trim();
   const codigo = document.getElementById('paramedico-codigo').value.trim();
+  const cedula = document.getElementById('paramedico-cedula').value.trim();
 
   if (!nombre || !codigo) { toast('Nombre y código son requeridos', 'error'); return; }
 
   const url = id ? `/api/paramedicos/${id}` : '/api/paramedicos';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, activo: true }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, cedula, activo: true }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -693,6 +695,7 @@ function renderParamedicos() {
         <div class="card-title">👨‍⚕️ ${p.nombre}</div>
         <span class="card-code">${p.codigo}</span>
       </div>
+      ${p.cedula ? `<div class="card-subtext">CC: ${p.cedula}</div>` : ''}
       <div class="card-actions">
         <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
         <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
@@ -709,6 +712,7 @@ function abrirModalAmbulancia(amb = null) {
   document.getElementById('ambulancia-id').value = amb?.id || '';
   document.getElementById('ambulancia-nombre').value = amb?.nombre || '';
   document.getElementById('ambulancia-codigo').value = amb?.codigo || '';
+  document.getElementById('ambulancia-placa').value = amb?.placa || '';
   document.getElementById('ambulancia-horas').value = amb?.horas_turno || '11';
   document.getElementById('ambulancia-estado').value = (amb?.activa === false) ? 'false' : 'true';
   document.getElementById('modal-ambulancia').classList.add('open');
@@ -722,6 +726,7 @@ async function guardarAmbulancia() {
   const id = document.getElementById('ambulancia-id').value;
   const nombre = document.getElementById('ambulancia-nombre').value.trim();
   const codigo = document.getElementById('ambulancia-codigo').value.trim();
+  const placa = document.getElementById('ambulancia-placa').value.trim();
   const horas_turno = parseInt(document.getElementById('ambulancia-horas').value) || 11;
   const activa = document.getElementById('ambulancia-estado').value === 'true';
 
@@ -729,7 +734,7 @@ async function guardarAmbulancia() {
 
   const url = id ? `/api/ambulancias/${id}` : '/api/ambulancias';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, horas_turno, activa }) });
+  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, placa, horas_turno, activa }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -801,6 +806,7 @@ function renderAmbulanciasList() {
         <div class="card-title">🚑 ${a.nombre}</div>
         <span class="card-code">${a.codigo}</span>
       </div>
+      ${a.placa ? `<div class="card-subtext">Placa: ${a.placa}</div>` : ''}
       <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
         <span style="display:inline-flex;align-items:center;gap:5px;background:#EAF4EE;color:#1B5E37;border:1px solid #A5D6B5;border-radius:20px;padding:3px 10px;font-size:11.5px;font-weight:600">
           <span style="width:7px;height:7px;border-radius:50%;background:#1B5E37;display:inline-block"></span>
