@@ -67,20 +67,6 @@ main { padding: 20px; max-width: 1440px; margin: 0 auto; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 .page-header h1 { font-size: 20px; font-weight: 700; color: var(--verde); display: flex; align-items: center; gap: 8px; }
 .page-header h1::before { content: ''; display: inline-block; width: 4px; height: 22px; background: var(--verde-claro); border-radius: 2px; }
-
-/* ── DASHBOARD / INICIO ── */
-.dashboard-fecha { font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
-.dashboard-seccion { font-size: 14px; font-weight: 700; color: var(--text); margin: 24px 0 12px; }
-.dashboard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 8px; }
-.stat-card { background: white; border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
-.stat-card.alerta { background: #FFF3E0; border-color: #F9A825; }
-.stat-label { font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600; }
-.stat-card.alerta .stat-label { color: #B35900; }
-.stat-value { font-size: 28px; font-weight: 700; color: var(--text); }
-.stat-card.alerta .stat-value { color: #B35900; }
-.dash-turno-row { display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px; margin-bottom: 8px; }
-.dash-turno-amb { font-weight: 700; font-size: 13.5px; }
-.dash-turno-para { font-size: 13px; color: var(--text-muted); }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ── BUTTONS ── */

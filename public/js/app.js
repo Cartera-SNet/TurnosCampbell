@@ -75,69 +75,9 @@ function navegarA(page) {
   document.querySelectorAll('.nav-btn,.mobile-menu-item,.bottom-nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.page === page);
   });
-  if (page === 'inicio') renderInicio();
   if (page === 'paramedicos') renderParamedicos();
   if (page === 'ambulancias') renderAmbulanciasList();
   window.scrollTo(0, 0);
-}
-
-async function renderInicio() {
-  const hoy = new Date();
-  const fechaStr = hoy.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
-  document.getElementById('dashboard-fecha').textContent = 'Hoy, ' + fechaStr;
-
-  const mes = hoy.getMonth() + 1, anio = hoy.getFullYear();
-  const hoyISO = hoy.toISOString().slice(0,10);
-
-  const statsEl = document.getElementById('dashboard-stats');
-  statsEl.innerHTML = '<p style="color:var(--text-muted);padding:10px 0">Calculando…</p>';
-
-  try {
-    const [turnos, reporte] = await Promise.all([
-      fetch(`/api/turnos?mes=${mes}&anio=${anio}`).then(r => r.json()),
-      fetch(`/api/turnos/reporte/horas?mes=${mes}&anio=${anio}`).then(r => r.json())
-    ]);
-
-    const turnosHoy = Array.isArray(turnos) ? turnos.filter(t => t.fecha === hoyISO) : [];
-    const paramedicosHoy = new Set();
-    turnosHoy.forEach(t => (t.paramedicos || []).forEach(p => paramedicosHoy.add(p.id || p.nombre)));
-    const conAlerta = Array.isArray(reporte) ? reporte.filter(r => r.alertas && r.alertas.length > 0).length : 0;
-    const ambulanciasActivas = ambulancias.filter(a => a.activa !== false).length;
-
-    statsEl.innerHTML = `
-      <div class="stat-card">
-        <div class="stat-label">Turnos activos</div>
-        <div class="stat-value">${turnosHoy.length}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Paramédicos hoy</div>
-        <div class="stat-value">${paramedicosHoy.size}</div>
-      </div>
-      <div class="stat-card ${conAlerta > 0 ? 'alerta' : ''}">
-        <div class="stat-label">Cerca del límite</div>
-        <div class="stat-value">${conAlerta}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Ambulancias activas</div>
-        <div class="stat-value">${ambulanciasActivas}</div>
-      </div>`;
-
-    const turnosEl = document.getElementById('dashboard-turnos-hoy');
-    if (!turnosHoy.length) {
-      turnosEl.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>No hay turnos programados para hoy</p></div>`;
-    } else {
-      turnosEl.innerHTML = turnosHoy.map(t => `
-        <div class="dash-turno-row">
-          <div>
-            <div class="dash-turno-amb">${t.turno === 'noche' ? '🌙' : '☀️'} ${t.ambulancia_codigo}</div>
-            <div class="dash-turno-para">${(t.paramedicos||[]).map(p=>p.nombre).join(', ') || 'Sin asignar'}</div>
-          </div>
-          <span class="turno-chip turno-${t.turno}">${t.horas}h</span>
-        </div>`).join('');
-    }
-  } catch (e) {
-    statsEl.innerHTML = `<p style="color:var(--danger)">Error al cargar el panel: ${e.message}</p>`;
-  }
 }
 
 
@@ -164,7 +104,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   poblarSelectores();
   await cargarDatos();
   cargarMalla();
-  renderInicio();
 
   // ── Nav desktop ──
   document.querySelectorAll('.nav-btn').forEach(btn => {
