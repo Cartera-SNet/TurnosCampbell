@@ -676,7 +676,14 @@ async function eliminarParamedico(id) {
   });
 }
 
+function revelarCedulas() {
+  if (_claveVerificada) return; // ya visibles, nada que hacer
+  verificarClaveAccion(() => renderParamedicos());
+}
+
 function renderParamedicos() {
+  const btn = document.getElementById('btn-revelar-cedulas');
+  if (btn) btn.textContent = _claveVerificada ? '🔓 Cédulas visibles' : '🔒 Ver cédulas';
   const container = document.getElementById('paramedicos-container');
   const lista = _busquedaParamedicos
     ? paramedicos.filter(p => p.nombre.toLowerCase().includes(_busquedaParamedicos) || p.codigo.toLowerCase().includes(_busquedaParamedicos))
@@ -695,7 +702,7 @@ function renderParamedicos() {
         <div class="card-title">👨‍⚕️ ${p.nombre}</div>
         <span class="card-code">${p.codigo}</span>
       </div>
-      ${p.cedula ? `<div class="card-subtext">CC: ${p.cedula}</div>` : ''}
+      ${p.cedula ? `<div class="card-subtext">🪪 CC: ${_claveVerificada ? p.cedula : '••••' + String(p.cedula).slice(-4)}</div>` : ''}
       <div class="card-actions">
         <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
         <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>

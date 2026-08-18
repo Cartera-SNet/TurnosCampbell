@@ -78,10 +78,13 @@
           <button class="btn-primary" onclick="abrirModalParamedico()">+ Nuevo Paramédico</button>
         </div>
       </div>
-      <div style="margin-bottom:16px;position:relative;max-width:340px">
-        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px">🔍</span>
-        <input type="text" placeholder="Buscar por nombre o código..." oninput="filtrarParamedicos(this.value)"
-          style="width:100%;padding-left:36px;border-radius:8px;border:1.5px solid var(--verde-borde)">
+      <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative;max-width:340px;flex:1;min-width:220px">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px">🔍</span>
+          <input type="text" placeholder="Buscar por nombre o código..." oninput="filtrarParamedicos(this.value)"
+            style="width:100%;padding-left:36px;border-radius:8px;border:1.5px solid var(--verde-borde)">
+        </div>
+        <button class="btn-secondary" id="btn-revelar-cedulas" onclick="revelarCedulas()">🔒 Ver cédulas</button>
       </div>
       <div id="paramedicos-container"></div>
     </section>
