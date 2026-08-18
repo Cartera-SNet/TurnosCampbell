@@ -40,7 +40,9 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    await db.query('DELETE FROM turno_paramedicos WHERE paramedico_id=$1', [req.params.id]);
     const { rowCount } = await db.query('DELETE FROM paramedicos WHERE id=$1', [req.params.id]);
+    if (!rowCount) return res.status(404).json({ error: 'Paramédico no encontrado' });
     res.json({ deleted: rowCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

@@ -667,12 +667,18 @@ async function guardarParamedico() {
 }
 
 async function eliminarParamedico(id) {
-  if (!confirm('¿Eliminar este paramédico?')) return;
+  if (!confirm('¿Eliminar este paramédico? También se quitará de los turnos donde ya estaba asignado (incluyendo turnos pasados).')) return;
   verificarClaveAccion(async () => {
-  await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
-  toast('Paramédico eliminado');
-  await cargarDatos();
-  renderParamedicos();
+    try {
+      const res = await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error'); return; }
+      toast('Paramédico eliminado');
+      await cargarDatos();
+      renderParamedicos();
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
   });
 }
 
