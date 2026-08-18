@@ -20,6 +20,24 @@ function cerrarModalClave() {
   _callbackPendiente = null;
 }
 
+function confirmarAccion(mensaje, onAceptar, opciones = {}) {
+  document.getElementById('confirmar-titulo').textContent = opciones.titulo || '⚠️ Confirmar acción';
+  document.getElementById('confirmar-mensaje').textContent = mensaje;
+  const btn = document.getElementById('confirmar-btn-aceptar');
+  btn.textContent = opciones.textoBoton || 'Eliminar';
+  const nuevoBtn = btn.cloneNode(true); // limpia listeners previos
+  btn.parentNode.replaceChild(nuevoBtn, btn);
+  nuevoBtn.addEventListener('click', () => {
+    cerrarModalConfirmar();
+    onAceptar();
+  });
+  document.getElementById('modal-confirmar').classList.add('open');
+}
+
+function cerrarModalConfirmar() {
+  document.getElementById('modal-confirmar').classList.remove('open');
+}
+
 async function confirmarClave() {
   const clave = document.getElementById('input-clave-admin').value.trim();
   if (!clave) return;
@@ -57,9 +75,69 @@ function navegarA(page) {
   document.querySelectorAll('.nav-btn,.mobile-menu-item,.bottom-nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.page === page);
   });
+  if (page === 'inicio') renderInicio();
   if (page === 'paramedicos') renderParamedicos();
   if (page === 'ambulancias') renderAmbulanciasList();
   window.scrollTo(0, 0);
+}
+
+async function renderInicio() {
+  const hoy = new Date();
+  const fechaStr = hoy.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  document.getElementById('dashboard-fecha').textContent = 'Hoy, ' + fechaStr;
+
+  const mes = hoy.getMonth() + 1, anio = hoy.getFullYear();
+  const hoyISO = hoy.toISOString().slice(0,10);
+
+  const statsEl = document.getElementById('dashboard-stats');
+  statsEl.innerHTML = '<p style="color:var(--text-muted);padding:10px 0">Calculando…</p>';
+
+  try {
+    const [turnos, reporte] = await Promise.all([
+      fetch(`/api/turnos?mes=${mes}&anio=${anio}`).then(r => r.json()),
+      fetch(`/api/turnos/reporte/horas?mes=${mes}&anio=${anio}`).then(r => r.json())
+    ]);
+
+    const turnosHoy = Array.isArray(turnos) ? turnos.filter(t => t.fecha === hoyISO) : [];
+    const paramedicosHoy = new Set();
+    turnosHoy.forEach(t => (t.paramedicos || []).forEach(p => paramedicosHoy.add(p.id || p.nombre)));
+    const conAlerta = Array.isArray(reporte) ? reporte.filter(r => r.alertas && r.alertas.length > 0).length : 0;
+    const ambulanciasActivas = ambulancias.filter(a => a.activa !== false).length;
+
+    statsEl.innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Turnos activos</div>
+        <div class="stat-value">${turnosHoy.length}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Paramédicos hoy</div>
+        <div class="stat-value">${paramedicosHoy.size}</div>
+      </div>
+      <div class="stat-card ${conAlerta > 0 ? 'alerta' : ''}">
+        <div class="stat-label">Cerca del límite</div>
+        <div class="stat-value">${conAlerta}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ambulancias activas</div>
+        <div class="stat-value">${ambulanciasActivas}</div>
+      </div>`;
+
+    const turnosEl = document.getElementById('dashboard-turnos-hoy');
+    if (!turnosHoy.length) {
+      turnosEl.innerHTML = `<div class="empty-state"><div class="icon">📅</div><p>No hay turnos programados para hoy</p></div>`;
+    } else {
+      turnosEl.innerHTML = turnosHoy.map(t => `
+        <div class="dash-turno-row">
+          <div>
+            <div class="dash-turno-amb">${t.turno === 'noche' ? '🌙' : '☀️'} ${t.ambulancia_codigo}</div>
+            <div class="dash-turno-para">${(t.paramedicos||[]).map(p=>p.nombre).join(', ') || 'Sin asignar'}</div>
+          </div>
+          <span class="turno-chip turno-${t.turno}">${t.horas}h</span>
+        </div>`).join('');
+    }
+  } catch (e) {
+    statsEl.innerHTML = `<p style="color:var(--danger)">Error al cargar el panel: ${e.message}</p>`;
+  }
 }
 
 
@@ -86,6 +164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   poblarSelectores();
   await cargarDatos();
   cargarMalla();
+  renderInicio();
 
   // ── Nav desktop ──
   document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -400,18 +479,20 @@ async function guardarTurno() {
 }
 
 async function eliminarTurno(id) {
-  if (!confirm('¿Eliminar este turno?')) return;
-  await fetch('/api/turnos/' + id, { method: 'DELETE' });
-  toast('Turno eliminado');
-  cargarMalla();
+  confirmarAccion('¿Eliminar este turno?', async () => {
+    await fetch('/api/turnos/' + id, { method: 'DELETE' });
+    toast('Turno eliminado');
+    cargarMalla();
+  });
 }
 
 async function eliminarExtra(id) {
-  if (!confirm('¿Eliminar este registro extra?')) return;
-  verificarClaveAccion(async () => {
-    await fetch('/api/extras/' + id, { method: 'DELETE' });
-    toast('Extra eliminado');
-    cargarMalla();
+  confirmarAccion('¿Eliminar este registro extra?', () => {
+    verificarClaveAccion(async () => {
+      await fetch('/api/extras/' + id, { method: 'DELETE' });
+      toast('Extra eliminado');
+      cargarMalla();
+    });
   });
 }
 
@@ -667,18 +748,19 @@ async function guardarParamedico() {
 }
 
 async function eliminarParamedico(id) {
-  if (!confirm('¿Eliminar este paramédico? También se quitará de los turnos donde ya estaba asignado (incluyendo turnos pasados).')) return;
-  verificarClaveAccion(async () => {
-    try {
-      const res = await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error'); return; }
-      toast('Paramédico eliminado');
-      await cargarDatos();
-      renderParamedicos();
-    } catch (e) {
-      toast('Error: ' + e.message, 'error');
-    }
+  confirmarAccion('¿Eliminar este paramédico? También se quitará de los turnos donde ya estaba asignado, incluyendo turnos pasados.', () => {
+    verificarClaveAccion(async () => {
+      try {
+        const res = await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error'); return; }
+        toast('Paramédico eliminado');
+        await cargarDatos();
+        renderParamedicos();
+      } catch (e) {
+        toast('Error: ' + e.message, 'error');
+      }
+    });
   });
 }
 
@@ -705,7 +787,10 @@ function renderParamedicos() {
   container.innerHTML = `<div class="cards-grid">${lista.map(p => `
     <div class="card">
       <div class="card-header">
-        <div class="card-title">👨‍⚕️ ${p.nombre}</div>
+        <div class="card-title-row">
+          <div class="card-avatar">${iniciales(p.nombre)}</div>
+          <div class="card-title">${p.nombre}</div>
+        </div>
         <span class="card-code">${p.codigo}</span>
       </div>
       ${p.cedula ? `<div class="card-subtext">🪪 CC: ${_claveVerificada ? p.cedula : '••••' + String(p.cedula).slice(-4)}</div>` : ''}
@@ -714,6 +799,10 @@ function renderParamedicos() {
         <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
       </div>
     </div>`).join('')}</div>`;
+}
+
+function iniciales(nombre) {
+  return nombre.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
 }
 
 
@@ -758,12 +847,13 @@ async function guardarAmbulancia() {
 }
 
 async function eliminarAmbulancia(id) {
-  if (!confirm('¿Eliminar esta ambulancia?')) return;
-  verificarClaveAccion(async () => {
-  await fetch('/api/ambulancias/' + id, { method: 'DELETE' });
-  toast('Ambulancia eliminada');
-  await cargarDatos();
-  renderAmbulanciasList();
+  confirmarAccion('¿Eliminar esta ambulancia?', () => {
+    verificarClaveAccion(async () => {
+      await fetch('/api/ambulancias/' + id, { method: 'DELETE' });
+      toast('Ambulancia eliminada');
+      await cargarDatos();
+      renderAmbulanciasList();
+    });
   });
 }
 
@@ -816,7 +906,10 @@ function renderAmbulanciasList() {
     return `
     <div class="card ${inactiva ? 'card-inactiva' : ''}">
       <div class="card-header">
-        <div class="card-title">🚑 ${a.nombre}</div>
+        <div class="card-title-row">
+          <div class="card-avatar">🚑</div>
+          <div class="card-title">${a.nombre}</div>
+        </div>
         <span class="card-code">${a.codigo}</span>
       </div>
       ${a.placa ? `<div class="card-subtext">Placa: ${a.placa}</div>` : ''}
@@ -1000,20 +1093,24 @@ function descargarBackup() {
 async function restaurarBackup() {
   const archivo = document.getElementById('backup-archivo')?.files[0];
   if (!archivo) { toast('Seleccioná un archivo primero', 'error'); return; }
-  const confirmado = confirm('⚠️ ATENCIÓN\n\nEsto reemplazará TODOS los datos actuales con el backup seleccionado.\n\n¿Estás seguro/a?');
-  if (!confirmado) return;
-  const key = backupKey();
-  const form = new FormData();
-  form.append('archivo', archivo);
-  try {
-    const res  = await fetch('/api/backup/restaurar', { method: 'POST', headers: { 'x-backup-key': key }, body: form });
-    const data = await res.json();
-    if (!res.ok) { alert('❌ Error al restaurar:\n' + data.error); return; }
-    toast('✅ Base de datos restaurada. Recargando…');
-    setTimeout(() => location.reload(), 2000);
-  } catch (e) {
-    alert('Error de conexión: ' + e.message);
-  }
+  confirmarAccion(
+    'Esto reemplazará TODOS los datos actuales con el backup seleccionado. Esta acción no se puede deshacer.',
+    async () => {
+      const key = backupKey();
+      const form = new FormData();
+      form.append('archivo', archivo);
+      try {
+        const res  = await fetch('/api/backup/restaurar', { method: 'POST', headers: { 'x-backup-key': key }, body: form });
+        const data = await res.json();
+        if (!res.ok) { toast('❌ Error al restaurar: ' + data.error, 'error'); return; }
+        toast('✅ Base de datos restaurada. Recargando…');
+        setTimeout(() => location.reload(), 2000);
+      } catch (e) {
+        toast('Error de conexión: ' + e.message, 'error');
+      }
+    },
+    { titulo: '⚠️ Restaurar base de datos', textoBoton: 'Sí, restaurar' }
+  );
 }
 // ═══════════════════════════════════════════════════════
 // BÚSQUEDA en Paramédicos y Ambulancias

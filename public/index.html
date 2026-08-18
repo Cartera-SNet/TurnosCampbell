@@ -21,7 +21,8 @@
         </div>
       </div>
       <nav class="nav-desktop">
-        <button class="nav-btn active" data-page="malla">📅 Malla Mensual</button>
+        <button class="nav-btn active" data-page="inicio">🏠 Inicio</button>
+        <button class="nav-btn" data-page="malla">📅 Malla Mensual</button>
         <button class="nav-btn" data-page="horas">⏱ Control de Horas</button>
         <button class="nav-btn" data-page="paramedicos">👨‍⚕️ Paramédicos</button>
         <button class="nav-btn" data-page="ambulancias">🚑 Ambulancias</button>
@@ -35,8 +36,19 @@
 
   <main>
 
+    <!-- ── INICIO / DASHBOARD ── -->
+    <section id="page-inicio" class="page active">
+      <div class="page-header">
+        <h1>Panel de turnos</h1>
+      </div>
+      <p class="dashboard-fecha" id="dashboard-fecha"></p>
+      <div class="dashboard-stats" id="dashboard-stats"></div>
+      <p class="dashboard-seccion">Turnos de hoy</p>
+      <div id="dashboard-turnos-hoy"></div>
+    </section>
+
     <!-- ── MALLA MENSUAL ── -->
-    <section id="page-malla" class="page active">
+    <section id="page-malla" class="page">
       <div class="page-header">
         <h1>Malla de Turnos</h1>
         <div class="controls">
@@ -383,7 +395,8 @@
 
 <!-- Menú lateral móvil -->
 <div class="mobile-menu" id="mobile-menu">
-  <button class="mobile-menu-item active" data-page="malla"><span>📅</span> Malla Mensual</button>
+  <button class="mobile-menu-item active" data-page="inicio"><span>🏠</span> Inicio</button>
+  <button class="mobile-menu-item" data-page="malla"><span>📅</span> Malla Mensual</button>
   <button class="mobile-menu-item" data-page="horas"><span>⏱</span> Control de Horas</button>
   <button class="mobile-menu-item" data-page="paramedicos"><span>👨‍⚕️</span> Paramédicos</button>
   <button class="mobile-menu-item" data-page="ambulancias"><span>🚑</span> Ambulancias</button>
@@ -398,6 +411,23 @@
   <button class="bottom-nav-btn" data-page="ambulancias"><span class="bni">🚑</span><span>Móviles</span></button>
   <button class="bottom-nav-btn" data-page="backup"><span class="bni">💾</span><span>Backup</span></button>
 </nav>
+
+<!-- Modal de confirmación genérico -->
+<div class="modal" id="modal-confirmar">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2 id="confirmar-titulo">⚠️ Confirmar acción</h2>
+      <button class="modal-close" onclick="cerrarModalConfirmar()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmar-mensaje" style="font-size:14px;color:var(--text);line-height:1.5"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModalConfirmar()">Cancelar</button>
+      <button class="btn-danger" id="confirmar-btn-aceptar">Eliminar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal de clave de administrador -->
 <div class="modal" id="modal-clave">
