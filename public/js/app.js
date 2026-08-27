@@ -712,10 +712,9 @@ function renderParamedicos() {
   const btn = document.getElementById('btn-revelar-cedulas');
   if (btn) btn.textContent = _claveVerificada ? '🔓 Cédulas visibles' : '🔒 Ver cédulas';
   const container = document.getElementById('paramedicos-container');
-  let lista = _busquedaParamedicos
+  const lista = _busquedaParamedicos
     ? paramedicos.filter(p => p.nombre.toLowerCase().includes(_busquedaParamedicos) || p.codigo.toLowerCase().includes(_busquedaParamedicos))
-    : [...paramedicos];
-  lista.sort((a, b) => String(a[_ordenParamedicos]).localeCompare(String(b[_ordenParamedicos]), 'es', { numeric: true }));
+    : paramedicos;
   if (!paramedicos.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">👨‍⚕️</div><p>No hay paramédicos registrados</p></div>`;
     return;
@@ -827,7 +826,6 @@ function renderAmbulanciasList() {
     : ambulancias;
   // Por defecto solo mostrar activas (no rompe turnos ya creados)
   if (!mostrarInactivas) lista = lista.filter(a => a.activa !== false);
-  lista.sort((a, b) => String(a[_ordenAmbulancias]).localeCompare(String(b[_ordenAmbulancias]), 'es', { numeric: true }));
   if (!ambulancias.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">🚑</div><p>No hay ambulancias registradas</p></div>`;
     return;
@@ -1058,18 +1056,6 @@ async function restaurarBackup() {
 // ═══════════════════════════════════════════════════════
 let _busquedaParamedicos = '';
 let _busquedaAmbulancias = '';
-let _ordenParamedicos = 'nombre';
-let _ordenAmbulancias = 'nombre';
-
-function ordenarParamedicos(campo) {
-  _ordenParamedicos = campo === 'codigo' ? 'codigo' : 'nombre';
-  renderParamedicos();
-}
-
-function ordenarAmbulancias(campo) {
-  _ordenAmbulancias = campo === 'codigo' ? 'codigo' : 'nombre';
-  renderAmbulanciasList();
-}
 
 function filtrarParamedicos(q) {
   _busquedaParamedicos = q.toLowerCase();

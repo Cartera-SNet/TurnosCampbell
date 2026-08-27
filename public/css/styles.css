@@ -124,18 +124,6 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .card-subtext { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 .card-actions { display: flex; gap: 8px; margin-top: 12px; }
 
-/* ── DIRECTORIOS ── */
-.directory-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; }
-.search-box { position: relative; flex: 1 1 280px; max-width: 360px; }
-.search-box input { width: 100%; padding-left: 36px; }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-53%); color: var(--text-muted); font-size: 22px; line-height: 1; pointer-events: none; }
-.directory-tool { display: inline-flex; align-items: center; gap: 7px; }
-.directory-select { min-width: 150px; }
-.check-filter { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: var(--text-muted); font-size: 13px; cursor: pointer; user-select: none; white-space: nowrap; }
-.check-filter input { width: 16px; height: 16px; accent-color: var(--verde); }
-.card-actions .btn-secondary, .card-actions .btn-danger, .card-actions .btn-success-sm, .card-actions .btn-warning-sm { flex: 1; min-width: 0; text-align: center; }
-.card-actions .btn-danger { padding-left: 8px; padding-right: 8px; }
-
 /* ── AMBULANCIAS: estado activa/inactiva ── */
 .card-inactiva { opacity: .55; background: #FAFAFA; border-style: dashed; }
 .card-inactiva .card-title { color: var(--text-muted); text-decoration: line-through; }
@@ -209,17 +197,14 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 @media (min-width: 768px) {
   header { padding: 0 28px; }
   main   { padding: 24px; }
-  .modal { align-items: stretch; justify-content: flex-end; padding: 0; background: rgba(16, 54, 35, .18); }
-  .modal-content,
-  .modal-content.modal-sm { width: min(430px, 100%); max-width: none; height: 100%; max-height: 100vh; border-radius: 16px 0 0 16px; box-shadow: -10px 0 35px rgba(27,94,55,.16); animation: slideRight .25s ease; }
-  .modal-header { border-radius: 16px 0 0 0; padding: 22px 24px 16px; background: white; }
-  .modal-header h2 { font-size: 18px; }
-  .modal-body { padding: 22px 24px; }
-  .modal-footer { padding: 16px 24px 22px; }
-  @keyframes slideRight { from { transform: translateX(40px); opacity: .7; } to { transform: translateX(0); opacity: 1; } }
+  .modal { align-items: center; padding: 20px; }
+  .modal-content { border-radius: 14px; max-width: 560px; animation: fadeIn .2s ease; }
+  .modal-content.modal-sm { max-width: 420px; }
+  .modal-header { border-radius: 14px 14px 0 0; }
+  @keyframes fadeIn { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
   .toast { left: auto; right: 24px; bottom: 24px; transform: translateY(100px); width: auto; text-align: left; }
   .toast.show { transform: translateY(0); }
-  .cards-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 }
 
 /* ════════════ MÓVIL ≤ 767px ════════════ */
@@ -264,10 +249,6 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 
   /* Cards columna única */
   .cards-grid { grid-template-columns: 1fr; gap: 10px; }
-
-  .directory-toolbar { align-items: stretch; }
-  .search-box { flex-basis: 100%; max-width: none; }
-  .directory-select { flex: 1; min-width: 0; }
 
   /* Resumen 2 columnas */
   .resumen-mes { grid-template-columns: repeat(2, 1fr); }

@@ -78,17 +78,13 @@
           <button class="btn-primary" onclick="abrirModalParamedico()">+ Nuevo Paramédico</button>
         </div>
       </div>
-      <div class="directory-toolbar">
-        <div class="search-box">
-          <span class="search-icon">⌕</span>
+      <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative;max-width:340px;flex:1;min-width:220px">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px">🔍</span>
           <input type="text" placeholder="Buscar por nombre o código..." oninput="filtrarParamedicos(this.value)"
-            aria-label="Buscar paramédicos">
+            style="width:100%;padding-left:36px;border-radius:8px;border:1.5px solid var(--verde-borde)">
         </div>
-        <button class="btn-secondary directory-tool" id="btn-revelar-cedulas" onclick="revelarCedulas()">▣ Ver cédulas</button>
-        <select class="directory-select" aria-label="Ordenar paramédicos" onchange="ordenarParamedicos(this.value)">
-          <option value="nombre">Nombre A-Z</option>
-          <option value="codigo">Código</option>
-        </select>
+        <button class="btn-secondary" id="btn-revelar-cedulas" onclick="revelarCedulas()">🔒 Ver cédulas</button>
       </div>
       <div id="paramedicos-container"></div>
     </section>
@@ -102,20 +98,16 @@
           <button class="btn-primary" onclick="abrirModalAmbulancia()">+ Nueva Ambulancia</button>
         </div>
       </div>
-      <div class="directory-toolbar">
-        <div class="search-box">
-          <span class="search-icon">⌕</span>
+      <div style="margin-bottom:16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <div style="position:relative;max-width:340px;flex:1;min-width:220px">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:15px">🔍</span>
           <input type="text" placeholder="Buscar por nombre o código..." oninput="filtrarAmbulancias(this.value)"
-            aria-label="Buscar ambulancias">
+            style="width:100%;padding-left:36px;border-radius:8px;border:1.5px solid var(--verde-borde)">
         </div>
-        <label class="check-filter">
-          <input type="checkbox" id="filtro-mostrar-inactivas" onchange="renderAmbulanciasList()">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-muted);user-select:none;white-space:nowrap">
+          <input type="checkbox" id="filtro-mostrar-inactivas" onchange="renderAmbulanciasList()" style="cursor:pointer">
           Mostrar inactivas
         </label>
-        <select class="directory-select" aria-label="Ordenar ambulancias" onchange="ordenarAmbulancias(this.value)">
-          <option value="nombre">Nombre A-Z</option>
-          <option value="codigo">Código</option>
-        </select>
       </div>
       <div id="ambulancias-container"></div>
     </section>
