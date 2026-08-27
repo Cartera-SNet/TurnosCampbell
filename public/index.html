@@ -280,13 +280,15 @@
         <label>Nombre completo</label>
         <input type="text" id="paramedico-nombre" placeholder="Ej: Juan Pérez">
       </div>
-      <div class="form-group">
-        <label>Código</label>
-        <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
-      </div>
-      <div class="form-group">
-        <label>Cédula</label>
-        <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Código</label>
+          <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
+        </div>
+        <div class="form-group">
+          <label>Cédula</label>
+          <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -309,28 +311,32 @@
         <label>Nombre / Descripción</label>
         <input type="text" id="ambulancia-nombre" placeholder="Ej: Ambulancia Norte">
       </div>
-      <div class="form-group">
-        <label>Código</label>
-        <input type="text" id="ambulancia-codigo" placeholder="Ej: MOVIL 62">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Código</label>
+          <input type="text" id="ambulancia-codigo" placeholder="Ej: MOVIL 62">
+        </div>
+        <div class="form-group">
+          <label>Placa</label>
+          <input type="text" id="ambulancia-placa" placeholder="Ej: ABC123">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Placa</label>
-        <input type="text" id="ambulancia-placa" placeholder="Ej: ABC123">
-      </div>
-      <div class="form-group">
-        <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(12 = 7-7, 11 = estándar, 8 = urgencias/hosp.)</small></label>
-        <select id="ambulancia-horas">
-          <option value="12">12 horas (turno 7 a 7)</option>
-          <option value="11">11 horas (estándar)</option>
-          <option value="8">8 horas (urgencias / hospitalización)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Estado</label>
-        <select id="ambulancia-estado">
-          <option value="true">✅ Activa</option>
-          <option value="false">⛔ Inactiva</option>
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Horas por turno</label>
+          <select id="ambulancia-horas">
+            <option value="12">12h (turno 7 a 7)</option>
+            <option value="11">11h (estándar)</option>
+            <option value="8">8h (urgencias / hosp.)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="ambulancia-estado">
+            <option value="true">✅ Activa</option>
+            <option value="false">⛔ Inactiva</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">

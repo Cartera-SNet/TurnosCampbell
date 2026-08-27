@@ -734,8 +734,8 @@ function renderParamedicos() {
       </div>
       ${p.cedula ? `<div class="card-subtext">🪪 CC: ${_claveVerificada ? p.cedula : '••••' + String(p.cedula).slice(-4)}</div>` : ''}
       <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
-        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
+        <button class="btn-secondary" style="flex:1" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn-icon-danger" title="Eliminar" onclick="eliminarParamedico('${p.id}')">🗑</button>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -743,6 +743,20 @@ function renderParamedicos() {
 function iniciales(nombre) {
   return nombre.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
 }
+
+function toggleCardMenu(event, menuId) {
+  event.stopPropagation();
+  const menu = document.getElementById(menuId);
+  const yaAbierto = menu.classList.contains('open');
+  cerrarCardMenus();
+  if (!yaAbierto) menu.classList.add('open');
+}
+
+function cerrarCardMenus() {
+  document.querySelectorAll('.card-menu-dropdown.open').forEach(m => m.classList.remove('open'));
+}
+
+document.addEventListener('click', cerrarCardMenus);
 
 
 // ============================================================
@@ -839,9 +853,6 @@ function renderAmbulanciasList() {
     const badgeEstado = inactiva
       ? `<span class="badge-estado badge-inactiva">⛔ Inactiva</span>`
       : `<span class="badge-estado badge-activa">✅ Activa</span>`;
-    const btnEstado = inactiva
-      ? `<button class="btn-success-sm" onclick="toggleAmbulanciaActiva('${a.id}', true)">Activar</button>`
-      : `<button class="btn-warning-sm" onclick="toggleAmbulanciaActiva('${a.id}', false)">Desactivar</button>`;
     return `
     <div class="card ${inactiva ? 'card-inactiva' : ''}">
       <div class="card-header">
@@ -860,9 +871,14 @@ function renderAmbulanciasList() {
         ${badgeEstado}
       </div>
       <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
-        ${btnEstado}
-        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
+        <button class="btn-secondary" style="flex:1" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
+        <div class="card-menu-wrap">
+          <button class="card-menu-btn" title="Más acciones" onclick="toggleCardMenu(event, 'menu-amb-${a.id}')">⋮</button>
+          <div class="card-menu-dropdown" id="menu-amb-${a.id}">
+            <button class="card-menu-item" onclick="cerrarCardMenus(); toggleAmbulanciaActiva('${a.id}', ${inactiva})">${inactiva ? '✅ Activar' : '⛔ Desactivar'}</button>
+            <button class="card-menu-item danger" onclick="cerrarCardMenus(); eliminarAmbulancia('${a.id}')">🗑 Eliminar</button>
+          </div>
+        </div>
       </div>
     </div>`;
   }).join('')}</div>`;
