@@ -72,7 +72,13 @@
     <!-- ── PARAMÉDICOS ── -->
     <section id="page-paramedicos" class="page">
       <div class="page-header">
-        <h1>Paramédicos</h1>
+        <div class="page-header-title">
+          <div class="page-header-icon">👨‍⚕️</div>
+          <div>
+            <h1>Paramédicos</h1>
+            <p class="page-header-sub">Gestiona la información de todos los paramédicos registrados.</p>
+          </div>
+        </div>
         <div class="controls">
           <button class="btn-export" onclick="abrirModalImportar('paramedicos')">📥 Importar Excel</button>
           <button class="btn-primary" onclick="abrirModalParamedico()">+ Nuevo Paramédico</button>
@@ -92,7 +98,13 @@
     <!-- ── AMBULANCIAS ── -->
     <section id="page-ambulancias" class="page">
       <div class="page-header">
-        <h1>Ambulancias</h1>
+        <div class="page-header-title">
+          <div class="page-header-icon">🚑</div>
+          <div>
+            <h1>Ambulancias</h1>
+            <p class="page-header-sub">Gestiona y monitorea todas las ambulancias disponibles.</p>
+          </div>
+        </div>
         <div class="controls">
           <button class="btn-export" onclick="abrirModalImportar('ambulancias')">📥 Importar Excel</button>
           <button class="btn-primary" onclick="abrirModalAmbulancia()">+ Nueva Ambulancia</button>
@@ -271,7 +283,13 @@
 <div id="modal-paramedico" class="modal">
   <div class="modal-content modal-sm">
     <div class="modal-header">
-      <h2 id="modal-paramedico-title">👨‍⚕️ Nuevo Paramédico</h2>
+      <div class="modal-header-title">
+        <div class="modal-header-icon">👨‍⚕️</div>
+        <div>
+          <h2 id="modal-paramedico-title">Nuevo Paramédico</h2>
+          <p class="modal-header-sub">Completa los datos del paramédico</p>
+        </div>
+      </div>
       <button class="modal-close" onclick="cerrarModal('modal-paramedico')">✕</button>
     </div>
     <div class="modal-body">
@@ -280,13 +298,15 @@
         <label>Nombre completo</label>
         <input type="text" id="paramedico-nombre" placeholder="Ej: Juan Pérez">
       </div>
-      <div class="form-group">
-        <label>Código</label>
-        <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
-      </div>
-      <div class="form-group">
-        <label>Cédula</label>
-        <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Código</label>
+          <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
+        </div>
+        <div class="form-group">
+          <label>Cédula</label>
+          <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890">
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -300,7 +320,13 @@
 <div id="modal-ambulancia" class="modal">
   <div class="modal-content modal-sm">
     <div class="modal-header">
-      <h2 id="modal-ambulancia-title">🚑 Nueva Ambulancia</h2>
+      <div class="modal-header-title">
+        <div class="modal-header-icon">🚑</div>
+        <div>
+          <h2 id="modal-ambulancia-title">Nueva Ambulancia</h2>
+          <p class="modal-header-sub">Completa los datos de la ambulancia</p>
+        </div>
+      </div>
       <button class="modal-close" onclick="cerrarModal('modal-ambulancia')">✕</button>
     </div>
     <div class="modal-body">
@@ -309,28 +335,32 @@
         <label>Nombre / Descripción</label>
         <input type="text" id="ambulancia-nombre" placeholder="Ej: Ambulancia Norte">
       </div>
-      <div class="form-group">
-        <label>Código</label>
-        <input type="text" id="ambulancia-codigo" placeholder="Ej: MOVIL 62">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Código</label>
+          <input type="text" id="ambulancia-codigo" placeholder="Ej: MOVIL 62">
+        </div>
+        <div class="form-group">
+          <label>Placa</label>
+          <input type="text" id="ambulancia-placa" placeholder="Ej: ABC123">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Placa</label>
-        <input type="text" id="ambulancia-placa" placeholder="Ej: ABC123">
-      </div>
-      <div class="form-group">
-        <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(12 = 7-7, 11 = estándar, 8 = urgencias/hosp.)</small></label>
-        <select id="ambulancia-horas">
-          <option value="12">12 horas (turno 7 a 7)</option>
-          <option value="11">11 horas (estándar)</option>
-          <option value="8">8 horas (urgencias / hospitalización)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Estado</label>
-        <select id="ambulancia-estado">
-          <option value="true">✅ Activa</option>
-          <option value="false">⛔ Inactiva</option>
-        </select>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Horas por turno</label>
+          <select id="ambulancia-horas">
+            <option value="12">12h (turno 7 a 7)</option>
+            <option value="11">11h (estándar)</option>
+            <option value="8">8h (urgencias / hosp.)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="ambulancia-estado">
+            <option value="true">✅ Activa</option>
+            <option value="false">⛔ Inactiva</option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -403,7 +433,13 @@
 <div class="modal" id="modal-confirmar">
   <div class="modal-content modal-sm">
     <div class="modal-header">
-      <h2 id="confirmar-titulo">⚠️ Confirmar acción</h2>
+      <div class="modal-header-title">
+        <div class="modal-header-icon modal-header-icon-danger">🗑</div>
+        <div>
+          <h2 id="confirmar-titulo">Confirmar acción</h2>
+          <p class="modal-header-sub">Esta acción no se puede deshacer</p>
+        </div>
+      </div>
       <button class="modal-close" onclick="cerrarModalConfirmar()">✕</button>
     </div>
     <div class="modal-body">

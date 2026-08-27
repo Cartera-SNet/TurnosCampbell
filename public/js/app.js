@@ -21,7 +21,7 @@ function cerrarModalClave() {
 }
 
 function confirmarAccion(mensaje, onAceptar, opciones = {}) {
-  document.getElementById('confirmar-titulo').textContent = opciones.titulo || '⚠️ Confirmar acción';
+  document.getElementById('confirmar-titulo').textContent = opciones.titulo || 'Confirmar acción';
   document.getElementById('confirmar-mensaje').textContent = mensaje;
   const btn = document.getElementById('confirmar-btn-aceptar');
   btn.textContent = opciones.textoBoton || 'Eliminar';
@@ -723,8 +723,13 @@ function renderParamedicos() {
     container.innerHTML = `<div class="empty-state"><div class="icon">🔍</div><p>Sin resultados para "<strong>${_busquedaParamedicos}</strong>"</p></div>`;
     return;
   }
-  container.innerHTML = `<div class="cards-grid">${lista.map(p => `
-    <div class="card">
+  container.innerHTML = `<div class="cards-grid">${lista.map(p => {
+    const inactivo = p.activo === false;
+    const btnEstado = inactivo
+      ? `<button class="btn-success-sm" onclick="toggleParamedicoActivo('${p.id}', true)">Activar</button>`
+      : `<button class="btn-warning-sm" onclick="toggleParamedicoActivo('${p.id}', false)">Desactivar</button>`;
+    return `
+    <div class="card ${inactivo ? 'card-inactiva' : ''}">
       <div class="card-header">
         <div class="card-title-row">
           <div class="card-avatar">${iniciales(p.nombre)}</div>
@@ -734,10 +739,34 @@ function renderParamedicos() {
       </div>
       ${p.cedula ? `<div class="card-subtext">🪪 CC: ${_claveVerificada ? p.cedula : '••••' + String(p.cedula).slice(-4)}</div>` : ''}
       <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
-        <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
+        <button class="btn-secondary" style="flex:1" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
+        ${btnEstado}
+        <button class="btn-icon-danger" title="Eliminar" onclick="eliminarParamedico('${p.id}')">🗑</button>
       </div>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function toggleParamedicoActivo(id, nuevaActivo) {
+  if (!_claveVerificada) {
+    verificarClaveAccion(() => toggleParamedicoActivo(id, nuevaActivo));
+    return;
+  }
+  const p = paramedicos.find(x => x.id === id);
+  if (!p) return;
+  try {
+    const res = await fetch(`/api/paramedicos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: p.nombre, codigo: p.codigo, cedula: p.cedula, activo: nuevaActivo })
+    });
+    if (!res.ok) { toast('Error al cambiar el estado', 'error'); return; }
+    toast(nuevaActivo ? '✅ Paramédico activado' : '⛔ Paramédico desactivado');
+    await cargarDatos();
+    renderParamedicos();
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
 }
 
 function iniciales(nombre) {
@@ -860,9 +889,9 @@ function renderAmbulanciasList() {
         ${badgeEstado}
       </div>
       <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn-secondary" style="flex:1" onclick="abrirModalAmbulancia(${JSON.stringify(a).replace(/"/g,'&quot;')})">Editar</button>
         ${btnEstado}
-        <button class="btn-danger" onclick="eliminarAmbulancia('${a.id}')">Eliminar</button>
+        <button class="btn-icon-danger" title="Eliminar" onclick="eliminarAmbulancia('${a.id}')">🗑</button>
       </div>
     </div>`;
   }).join('')}</div>`;
@@ -1048,7 +1077,7 @@ async function restaurarBackup() {
         toast('Error de conexión: ' + e.message, 'error');
       }
     },
-    { titulo: '⚠️ Restaurar base de datos', textoBoton: 'Sí, restaurar' }
+    { titulo: 'Restaurar base de datos', textoBoton: 'Sí, restaurar' }
   );
 }
 // ═══════════════════════════════════════════════════════
