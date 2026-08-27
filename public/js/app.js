@@ -161,17 +161,21 @@ function poblarSelectores() {
 // EXPORTAR EXCEL
 // ============================================================
 function exportarExcel() {
-  const mes  = document.getElementById('malla-mes').value;
-  const anio = document.getElementById('malla-anio').value;
-  toast('Generando Excel, espera un momento...', 'success');
-  window.location.href = `/api/exportar/turnos?mes=${mes}&anio=${anio}`;
+  verificarClaveAccion(() => {
+    const mes  = document.getElementById('malla-mes').value;
+    const anio = document.getElementById('malla-anio').value;
+    toast('Generando Excel, espera un momento...', 'success');
+    window.location.href = `/api/exportar/turnos?mes=${mes}&anio=${anio}`;
+  });
 }
 
 function exportarPDF() {
-  const mes  = document.getElementById('malla-mes').value;
-  const anio = document.getElementById('malla-anio').value;
-  toast('Generando PDF, espera un momento...', 'success');
-  window.location.href = `/api/pdf/turnos?mes=${mes}&anio=${anio}`;
+  verificarClaveAccion(() => {
+    const mes  = document.getElementById('malla-mes').value;
+    const anio = document.getElementById('malla-anio').value;
+    toast('Generando PDF, espera un momento...', 'success');
+    window.location.href = `/api/pdf/turnos?mes=${mes}&anio=${anio}`;
+  });
 }
 
 async function cargarDatos() {
