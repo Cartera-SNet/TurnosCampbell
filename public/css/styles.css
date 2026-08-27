@@ -65,12 +65,8 @@ main { padding: 20px; max-width: 1440px; margin: 0 auto; }
 .page { display: none; }
 .page.active { display: block; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-.page-header-title { display: flex; align-items: center; gap: 12px; }
-.page-header-icon { width: 42px; height: 42px; border-radius: 12px; background: var(--verde-bg); display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0; }
-.page-header-sub { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
 .page-header h1 { font-size: 20px; font-weight: 700; color: var(--verde); display: flex; align-items: center; gap: 8px; }
 .page-header h1::before { content: ''; display: inline-block; width: 4px; height: 22px; background: var(--verde-claro); border-radius: 2px; }
-.page-header-title h1::before { display: none; }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ── BUTTONS ── */
@@ -127,8 +123,6 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .card-code { font-size: 11px; background: var(--verde-bg); padding: 2px 8px; border-radius: 10px; color: var(--verde); font-weight: 600; border: 1px solid var(--verde-borde); }
 .card-subtext { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 .card-actions { display: flex; gap: 8px; margin-top: 12px; }
-.btn-icon-danger { background: none; border: 1px solid var(--border); color: var(--text-muted); width: 40px; height: 40px; min-height: 40px; border-radius: 7px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .15s; }
-.btn-icon-danger:hover { background: #FEF2F2; border-color: #FCA5A5; color: var(--danger); }
 
 /* ── AMBULANCIAS: estado activa/inactiva ── */
 .card-inactiva { opacity: .55; background: #FAFAFA; border-style: dashed; }
@@ -166,16 +160,11 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 .modal-content.modal-sm { max-width: 100%; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 2px solid var(--verde-bg); background: var(--verde-bg); border-radius: 20px 20px 0 0; position: sticky; top: 0; z-index: 1; }
-.modal-header-title { display: flex; align-items: center; gap: 12px; }
-.modal-header-icon { width: 40px; height: 40px; border-radius: 12px; background: white; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.modal-header-icon-danger { background: #FEE2E2; color: var(--danger); border-radius: 50%; }
-.modal-header-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
 .modal-header h2 { font-size: 16px; font-weight: 700; color: var(--verde); }
 .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); width: 36px; height: 36px; border-radius: 6px; transition: background .15s; display: flex; align-items: center; justify-content: center; }
 .modal-close:hover { background: white; }
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: white; }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .form-group { display: flex; flex-direction: column; gap: 7px; }
 .form-group label { font-size: 13.5px; font-weight: 600; color: var(--verde); }
 .form-group input, .form-group select { width: 100%; }
@@ -220,8 +209,6 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 
 /* ════════════ MÓVIL ≤ 767px ════════════ */
 @media (max-width: 767px) {
-  .form-row { grid-template-columns: 1fr; }
-
   /* Ocultar nav desktop, mostrar hamburguesa */
   .nav-desktop { display: none; }
   .hamburger   { display: flex; }
