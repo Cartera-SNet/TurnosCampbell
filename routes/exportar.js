@@ -91,7 +91,11 @@ router.get('/turnos', async (req, res) => {
     if (semana !== semanaAnterior) {
       ws1.mergeCells(`A${filaActual}:G${filaActual}`);
       const sepCell = ws1.getCell(`A${filaActual}`);
-      sepCell.value = `Semana del ${semana.split('-').reverse().join('/')}`;
+      const lunesObj  = new Date(semana + 'T12:00:00');
+      const domingoObj = new Date(lunesObj);
+      domingoObj.setDate(lunesObj.getDate() + 6);
+      const fmt = (dt) => String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0');
+      sepCell.value = `Semana del ${fmt(lunesObj)} al ${fmt(domingoObj)}/${domingoObj.getFullYear()}`;
       sepCell.font  = { name: 'Calibri', size: 9, bold: true, color: { argb: VERDE_OSCURO } };
       sepCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_CLARO } };
       sepCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };

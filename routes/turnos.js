@@ -30,7 +30,7 @@ function getLimiteHoras(fechaStr) {
 
 async function obtenerParamedicos(turno_id) {
   const { rows } = await db.query(
-    'SELECT paramedico_id AS id, paramedico_nombre AS nombre FROM turno_paramedicos WHERE turno_id = $1',
+    'SELECT paramedico_id AS id, paramedico_nombre AS nombre, firma FROM turno_paramedicos WHERE turno_id = $1',
     [turno_id]
   );
   return rows;
@@ -80,8 +80,17 @@ router.post('/', async (req, res) => {
     const existing = await client.query('SELECT id FROM turnos WHERE key = $1', [key]);
 
     let turnoId;
+    let firmasExistentes = {};
     if (existing.rows.length) {
       turnoId = existing.rows[0].id;
+
+      // Guardar las firmas ya registradas antes de borrar, para no perderlas
+      const firmasPrevias = await client.query(
+        'SELECT paramedico_id, firma FROM turno_paramedicos WHERE turno_id = $1',
+        [turnoId]
+      );
+      firmasPrevias.rows.forEach(f => { firmasExistentes[f.paramedico_id] = f.firma; });
+
       await client.query(
         `UPDATE turnos SET fecha=$1, semana=$2, ambulancia_id=$3, ambulancia_codigo=$4,
          turno=$5, horas=$6, actualizado=NOW() WHERE key=$7`,
@@ -98,9 +107,12 @@ router.post('/', async (req, res) => {
     }
 
     for (const p of paramedicos) {
+      // Si el paramédico ya tenía firma registrada en este turno, se conserva.
+      // Si en el body viene una firma explícita para este paramédico, se usa esa.
+      const firma = p.firma !== undefined ? p.firma : (firmasExistentes[p.id] || null);
       await client.query(
-        'INSERT INTO turno_paramedicos (turno_id, paramedico_id, paramedico_nombre) VALUES ($1, $2, $3)',
-        [turnoId, p.id, p.nombre]
+        'INSERT INTO turno_paramedicos (turno_id, paramedico_id, paramedico_nombre, firma) VALUES ($1, $2, $3, $4)',
+        [turnoId, p.id, p.nombre, firma]
       );
     }
 
@@ -121,6 +133,24 @@ router.delete('/:id', async (req, res) => {
   try {
     const { rowCount } = await db.query('DELETE FROM turnos WHERE id=$1', [req.params.id]);
     res.json({ deleted: rowCount });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Guardar/actualizar la firma de un paramédico en un turno específico
+router.put('/:turnoId/firma/:paramedicoId', async (req, res) => {
+  const { firma } = req.body;
+  if (typeof firma !== 'string' || !firma.trim())
+    return res.status(400).json({ error: 'Firma requerida' });
+  if (firma.length > 2000)
+    return res.status(400).json({ error: 'La firma excede el tamaño máximo permitido (2000 caracteres)' });
+
+  try {
+    const { rowCount } = await db.query(
+      'UPDATE turno_paramedicos SET firma = $1 WHERE turno_id = $2 AND paramedico_id = $3',
+      [firma, req.params.turnoId, req.params.paramedicoId]
+    );
+    if (!rowCount) return res.status(404).json({ error: 'No se encontró ese paramédico en ese turno' });
+    res.json({ updated: rowCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
