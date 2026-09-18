@@ -90,6 +90,9 @@ router.get('/turnos', async (req, res) => {
   const logoPath  = path.join(__dirname, '../public/img/logo.png');
 
   // ── Consultas PostgreSQL ──────────────────────────────────
+  // Solo horas del mes seleccionado. Las semanas que cruzan meses
+  // muestran el rango completo en la columna "Semana", pero el total
+  // contabiliza únicamente los días que pertenecen al mes exportado.
   const [{ rows: turnosRaw }, { rows: extras }] = await Promise.all([
     db.query("SELECT * FROM turnos WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
     db.query("SELECT * FROM extras WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
@@ -210,7 +213,7 @@ router.get('/turnos', async (req, res) => {
   // PÁGINA: CONTROL DE HORAS
   doc.addPage();
   headerPagina(doc, `CONTROL DE HORAS — ${mesNombre.toUpperCase()} ${anio}`,
-    `Límite semanal: ${limite} horas   |   Celdas resaltadas en rojo = semana excedida`,
+    `Límite semanal: ${limite} horas   |   Celdas resaltadas en rojo = semana excedida   |   Solo se cuentan horas del mes seleccionado`,
     logoPath, pageW);
   pieAgina(doc, pageW, pageH, mesNombre, anio);
 

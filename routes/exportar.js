@@ -31,6 +31,9 @@ router.get('/turnos', async (req, res) => {
   const prefix    = `${anio}-${mesStr}%`;
 
   // ── Consultas PostgreSQL ──────────────────────────────────
+  // Solo horas del mes seleccionado. Las semanas que cruzan meses
+  // muestran el rango completo en la columna "Semana", pero el total
+  // contabiliza únicamente los días que pertenecen al mes exportado.
   const [{ rows: turnosRaw }, { rows: extras }] = await Promise.all([
     db.query("SELECT * FROM turnos WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
     db.query("SELECT * FROM extras WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
@@ -172,7 +175,7 @@ router.get('/turnos', async (req, res) => {
 
   ws2.mergeCells('A2:F2');
   const sub2 = ws2.getCell('A2');
-  sub2.value = `Límite semanal: ${limiteSemanal} horas   |   Celdas en rojo = semana excedida`;
+  sub2.value = `Límite semanal: ${limiteSemanal} horas   |   Celdas en rojo = semana excedida   |   Solo se cuentan horas del mes seleccionado`;
   sub2.font  = { name: 'Calibri', size: 10, italic: true, color: { argb: BLANCO } };
   sub2.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_MEDIO } };
   sub2.alignment = { horizontal: 'center', vertical: 'middle' };
