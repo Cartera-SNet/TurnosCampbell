@@ -220,7 +220,11 @@ router.get('/turnos', async (req, res) => {
         const alerta = horas > limiteSemanal;
         if (alerta) totalExcesos++;
 
-        const semFmt = semana.split('-').reverse().join('/');
+        const lunesObj  = new Date(semana + 'T12:00:00');
+        const domingoObj = new Date(lunesObj);
+        domingoObj.setDate(lunesObj.getDate() + 6);
+        const fmtCorto = (dt) => String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0');
+        const semFmt   = `${fmtCorto(lunesObj)} al ${fmtCorto(domingoObj)}/${domingoObj.getFullYear()}`;
         const row = ws2.addRow([idx === 0 ? r.nombre : '', semFmt, horas, limiteSemanal, exceso > 0 ? exceso : '—', alerta ? '⚠ EXCEDIDO' : '✓ OK']);
 
         row.eachCell((cell, col) => {
@@ -258,7 +262,7 @@ router.get('/turnos', async (req, res) => {
   resCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_OSCURO } };
   resCell.alignment = { horizontal: 'center', vertical: 'middle' };
   ws2.getRow(filaH).height = 24;
-  ws2.columns = [{ width: 28 }, { width: 14 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 14 }];
+  ws2.columns = [{ width: 28 }, { width: 22 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 14 }];
 
   const filename = `Turnos_${mesNombre}_${anio}.xlsx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
