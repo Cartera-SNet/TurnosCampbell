@@ -71,6 +71,12 @@ async function inicializar() {
     // Agregar cedula y placa si no existen (migración)
     await pool.query('ALTER TABLE paramedicos ADD COLUMN IF NOT EXISTS cedula TEXT').catch(() => {});
     await pool.query('ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS placa TEXT').catch(() => {});
+    // IPS registrada (ambulancias) y rol (personal APH)
+    await pool.query('ALTER TABLE ambulancias ADD COLUMN IF NOT EXISTS ips TEXT').catch(() => {});
+    await pool.query("ALTER TABLE paramedicos ADD COLUMN IF NOT EXISTS rol TEXT NOT NULL DEFAULT 'Paramédico'").catch(() => {});
+    // Asignación automática inicial de IPS (solo a las que aún no tienen; no pisa cambios posteriores)
+    await pool.query("UPDATE ambulancias SET ips = 'C30' WHERE ips IS NULL AND codigo = 'MOVIL 71'").catch(() => {});
+    await pool.query("UPDATE ambulancias SET ips = 'CCM' WHERE ips IS NULL").catch(() => {});
     console.log('[DB] Esquema PostgreSQL listo');
 }
 

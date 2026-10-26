@@ -23,13 +23,6 @@ function getSemana(fechaStr) {
   return lunes.toISOString().split('T')[0];
 }
 function fmtFecha(f) { return f.split('-').reverse().join('/'); }
-function fmtSemana(sem) {
-  const lunes   = new Date(sem + 'T12:00:00');
-  const domingo = new Date(lunes);
-  domingo.setDate(lunes.getDate() + 6);
-  const f = (dt) => String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0');
-  return `${f(lunes)} al ${f(domingo)}/${domingo.getFullYear()}`;
-}
 
 function drawRect(doc, x, y, w, h, color) {
   doc.save().rect(x, y, w, h).fill(color).restore();
@@ -90,9 +83,6 @@ router.get('/turnos', async (req, res) => {
   const logoPath  = path.join(__dirname, '../public/img/logo.png');
 
   // ── Consultas PostgreSQL ──────────────────────────────────
-  // Solo horas del mes seleccionado. Las semanas que cruzan meses
-  // muestran el rango completo en la columna "Semana", pero el total
-  // contabiliza únicamente los días que pertenecen al mes exportado.
   const [{ rows: turnosRaw }, { rows: extras }] = await Promise.all([
     db.query("SELECT * FROM turnos WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
     db.query("SELECT * FROM extras WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
@@ -126,7 +116,7 @@ router.get('/turnos', async (req, res) => {
   // PÁGINA 1: MALLA DE TURNOS
   doc.addPage();
   headerPagina(doc, `MALLA DE TURNOS — ${mesNombre.toUpperCase()} ${anio}`,
-    `Turno Día: 7:00 am–6:00 pm (11 h)   |   Turno Noche: 6:00 pm–7:00 am (13 h)   |   Límite semanal: ${limite} h`,
+    `Horario Día: 7:00 am–6:00 pm   |   Horario Noche: 6:00 pm–7:00 am   |   Horas según ambulancia   |   Límite semanal: ${limite} h`,
     logoPath, pageW);
   pieAgina(doc, pageW, pageH, mesNombre, anio);
 
@@ -157,7 +147,7 @@ router.get('/turnos', async (req, res) => {
       if (y + rowH > bodyBot) {
         doc.addPage();
         headerPagina(doc, `MALLA DE TURNOS — ${mesNombre.toUpperCase()} ${anio} (cont.)`,
-          `Turno Día: 7:00 am–6:00 pm (11 h)   |   Turno Noche: 6:00 pm–7:00 am (13 h)`,
+          `Horario Día: 7:00 am–6:00 pm   |   Horario Noche: 6:00 pm–7:00 am   |   Horas según ambulancia`,
           logoPath, pageW);
         pieAgina(doc, pageW, pageH, mesNombre, anio);
         y = filaTH(doc, colsMalla, bodyTop, 20);
@@ -165,7 +155,7 @@ router.get('/turnos', async (req, res) => {
       drawRect(doc, ML, y, bodyW, 13, VERDE_CL);
       doc.save().moveTo(ML, y).lineTo(ML + bodyW, y).strokeColor(VERDE_M).lineWidth(0.8).stroke().restore();
       doc.fillColor(VERDE).font('Helvetica-Bold').fontSize(7)
-         .text(`  Semana del ${fmtSemana(semana)}`, ML + 3, y + 3, { width: bodyW - 6 });
+         .text(`  Semana del ${fmtFecha(semana)}`, ML + 3, y + 3, { width: bodyW - 6 });
       y += 13;
       semAnt = semana;
     }
@@ -173,7 +163,7 @@ router.get('/turnos', async (req, res) => {
     if (y + rowH > bodyBot) {
       doc.addPage();
       headerPagina(doc, `MALLA DE TURNOS — ${mesNombre.toUpperCase()} ${anio} (cont.)`,
-        `Turno Día: 7:00 am–6:00 pm (11 h)   |   Turno Noche: 6:00 pm–7:00 am (13 h)`,
+        `Horario Día: 7:00 am–6:00 pm   |   Horario Noche: 6:00 pm–7:00 am   |   Horas según ambulancia`,
         logoPath, pageW);
       pieAgina(doc, pageW, pageH, mesNombre, anio);
       y = filaTH(doc, colsMalla, bodyTop, 20);
@@ -213,18 +203,18 @@ router.get('/turnos', async (req, res) => {
   // PÁGINA: CONTROL DE HORAS
   doc.addPage();
   headerPagina(doc, `CONTROL DE HORAS — ${mesNombre.toUpperCase()} ${anio}`,
-    `Límite semanal: ${limite} horas   |   Celdas resaltadas en rojo = semana excedida   |   Solo se cuentan horas del mes seleccionado`,
+    `Límite semanal: ${limite} horas   |   Celdas resaltadas en rojo = semana excedida`,
     logoPath, pageW);
   pieAgina(doc, pageW, pageH, mesNombre, anio);
 
   const colsH = [
     { x: ML,       w: 160, label: 'Paramédico',   align: 'left'   },
-    { x: ML+160,   w: 120, label: 'Semana',       align: 'center' },
-    { x: ML+280,   w: 70,  label: 'Horas Semana', align: 'center' },
-    { x: ML+350,   w: 55,  label: 'Límite',       align: 'center' },
-    { x: ML+405,   w: 55,  label: 'Exceso',       align: 'center' },
-    { x: ML+460,   w: 80,  label: 'Estado',       align: 'center' },
-    { x: ML+540,   w: bodyW - 540, label: 'Total Mes', align: 'center' },
+    { x: ML+160,   w: 80,  label: 'Semana',       align: 'center' },
+    { x: ML+240,   w: 70,  label: 'Horas Semana', align: 'center' },
+    { x: ML+310,   w: 55,  label: 'Límite',       align: 'center' },
+    { x: ML+365,   w: 55,  label: 'Exceso',       align: 'center' },
+    { x: ML+420,   w: 80,  label: 'Estado',       align: 'center' },
+    { x: ML+500,   w: bodyW - 500, label: 'Total Mes', align: 'center' },
   ];
 
   let yH = filaTH(doc, colsH, bodyTop, 20);
@@ -267,7 +257,7 @@ router.get('/turnos', async (req, res) => {
       const bg = alerta ? ROJO_BG : (idx % 2 === 0 ? '#F9FBF9' : null);
       yH = filaTD(doc, [
         idx === 0 ? r.nombre : '',
-        fmtSemana(sem),
+        fmtFecha(sem),
         `${horas} h`,
         `${limite} h`,
         exceso > 0 ? `+${exceso} h` : '—',

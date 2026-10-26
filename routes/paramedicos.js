@@ -3,6 +3,8 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
 
+const ROLES_VALIDOS = ['Paramédico', 'Conductor', 'Radioperador'];
+
 router.get('/', async (req, res) => {
   try {
     const { rows } = await db.query('SELECT * FROM paramedicos ORDER BY nombre ASC');
@@ -12,7 +14,9 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const { nombre, codigo, cedula } = req.body;
+  const rol = req.body.rol || 'Paramédico';
   if (!nombre || !codigo) return res.status(400).json({ error: 'Nombre y código son requeridos' });
+  if (!ROLES_VALIDOS.includes(rol)) return res.status(400).json({ error: 'Rol no válido' });
 
   const codigoUp = codigo.trim().toUpperCase();
   try {
@@ -20,19 +24,21 @@ router.post('/', async (req, res) => {
     if (existe.rows.length) return res.status(400).json({ error: 'Ya existe un paramédico con ese código' });
 
     const { rows } = await db.query(
-      'INSERT INTO paramedicos (id, nombre, codigo, cedula) VALUES ($1, $2, $3, $4) RETURNING *',
-      [randomUUID(), nombre.trim(), codigoUp, cedula ? String(cedula).trim() : null]
+      'INSERT INTO paramedicos (id, nombre, codigo, cedula, rol) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [randomUUID(), nombre.trim(), codigoUp, cedula ? String(cedula).trim() : null, rol]
     );
     res.status(201).json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.put('/:id', async (req, res) => {
-  const { nombre, codigo, activo, cedula } = req.body;
+  const { nombre, codigo, activo, cedula, rol } = req.body;
+  if (rol !== undefined && rol !== null && !ROLES_VALIDOS.includes(rol))
+    return res.status(400).json({ error: 'Rol no válido' });
   try {
     const { rowCount } = await db.query(
-      'UPDATE paramedicos SET nombre=$1, codigo=$2, activo=$3, cedula=$4 WHERE id=$5',
-      [nombre, codigo?.toUpperCase(), activo, cedula ? String(cedula).trim() : null, req.params.id]
+      'UPDATE paramedicos SET nombre=$1, codigo=$2, activo=$3, cedula=$4, rol=COALESCE($5, rol) WHERE id=$6',
+      [nombre, codigo?.toUpperCase(), activo, cedula ? String(cedula).trim() : null, rol || null, req.params.id]
     );
     res.json({ updated: rowCount });
   } catch (e) { res.status(500).json({ error: e.message }); }

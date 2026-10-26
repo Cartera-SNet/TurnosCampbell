@@ -23,7 +23,7 @@
       <nav class="nav-desktop">
         <button class="nav-btn active" data-page="malla">📅 Malla Mensual</button>
         <button class="nav-btn" data-page="horas">⏱ Control de Horas</button>
-        <button class="nav-btn" data-page="paramedicos">👨‍⚕️ Paramédicos</button>
+        <button class="nav-btn" data-page="paramedicos">👨‍⚕️ Personal APH</button>
         <button class="nav-btn" data-page="ambulancias">🚑 Ambulancias</button>
         <button class="nav-btn" data-page="backup">💾 Backup</button>
       </nav>
@@ -72,10 +72,11 @@
     <!-- ── PARAMÉDICOS ── -->
     <section id="page-paramedicos" class="page">
       <div class="page-header">
-        <h1>Paramédicos</h1>
+        <h1>Personal APH</h1>
         <div class="controls">
+          <button class="btn-export" onclick="exportarPersonal()">📊 Exportar Excel</button>
           <button class="btn-export" onclick="abrirModalImportar('paramedicos')">📥 Importar Excel</button>
-          <button class="btn-primary" onclick="abrirModalParamedico()">+ Nuevo Paramédico</button>
+          <button class="btn-primary" onclick="abrirModalParamedico()">+ Nuevo Personal</button>
         </div>
       </div>
       <div style="margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -271,7 +272,7 @@
 <div id="modal-paramedico" class="modal">
   <div class="modal-content modal-sm">
     <div class="modal-header">
-      <h2 id="modal-paramedico-title">👨‍⚕️ Nuevo Paramédico</h2>
+      <h2 id="modal-paramedico-title">👨‍⚕️ Nuevo Personal</h2>
       <button class="modal-close" onclick="cerrarModal('modal-paramedico')">✕</button>
     </div>
     <div class="modal-body">
@@ -279,6 +280,14 @@
       <div class="form-group">
         <label>Nombre completo</label>
         <input type="text" id="paramedico-nombre" placeholder="Ej: Juan Pérez">
+      </div>
+      <div class="form-group">
+        <label>Rol</label>
+        <select id="paramedico-rol">
+          <option value="Paramédico">Paramédico</option>
+          <option value="Conductor">Conductor</option>
+          <option value="Radioperador">Radioperador</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Código</label>
@@ -307,15 +316,20 @@
       <input type="hidden" id="ambulancia-id">
       <div class="form-group">
         <label>Nombre / Descripción</label>
-        <input type="text" id="ambulancia-nombre" placeholder="Ej: Ambulancia Norte">
+        <input type="text" id="ambulancia-nombre" placeholder="Ej: MOVIL 62">
       </div>
       <div class="form-group">
-        <label>Código</label>
-        <input type="text" id="ambulancia-codigo" placeholder="Ej: MOVIL 62">
-      </div>
-      <div class="form-group">
-        <label>Placa</label>
+        <label>Placa <small style="font-weight:400;color:var(--text-muted)">(opcional)</small></label>
         <input type="text" id="ambulancia-placa" placeholder="Ej: ABC123">
+      </div>
+      <div class="form-group">
+        <label>IPS registrada</label>
+        <select id="ambulancia-ips">
+          <option value="">— Seleccionar IPS —</option>
+          <option value="C30">C30 - Fundacion Campbell</option>
+          <option value="CCM">CCM - Fundacion Campbell</option>
+          <option value="CCSO">CCSO - Fundacion Campbell</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(12 = 7-7, 11 = estándar, 8 = urgencias/hosp.)</small></label>
@@ -385,7 +399,7 @@
 <div class="mobile-menu" id="mobile-menu">
   <button class="mobile-menu-item active" data-page="malla"><span>📅</span> Malla Mensual</button>
   <button class="mobile-menu-item" data-page="horas"><span>⏱</span> Control de Horas</button>
-  <button class="mobile-menu-item" data-page="paramedicos"><span>👨‍⚕️</span> Paramédicos</button>
+  <button class="mobile-menu-item" data-page="paramedicos"><span>👨‍⚕️</span> Personal APH</button>
   <button class="mobile-menu-item" data-page="ambulancias"><span>🚑</span> Ambulancias</button>
   <button class="mobile-menu-item" data-page="backup"><span>💾</span> Backup</button>
 </div>

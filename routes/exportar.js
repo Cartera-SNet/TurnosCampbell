@@ -31,9 +31,6 @@ router.get('/turnos', async (req, res) => {
   const prefix    = `${anio}-${mesStr}%`;
 
   // ── Consultas PostgreSQL ──────────────────────────────────
-  // Solo horas del mes seleccionado. Las semanas que cruzan meses
-  // muestran el rango completo en la columna "Semana", pero el total
-  // contabiliza únicamente los días que pertenecen al mes exportado.
   const [{ rows: turnosRaw }, { rows: extras }] = await Promise.all([
     db.query("SELECT * FROM turnos WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
     db.query("SELECT * FROM extras WHERE fecha LIKE $1 ORDER BY fecha ASC", [prefix]),
@@ -64,7 +61,7 @@ router.get('/turnos', async (req, res) => {
 
   ws1.mergeCells('A2:G2');
   const sub1 = ws1.getCell('A2');
-  sub1.value = `Turno Día: 7:00 am – 6:00 pm (11 h)   |   Turno Noche: 6:00 pm – 7:00 am (13 h)   |   Límite semanal: ${parseInt(mes) >= 7 ? 42 : 44} h`;
+  sub1.value = `Horario Día: 7:00 am – 6:00 pm   |   Horario Noche: 6:00 pm – 7:00 am   |   Horas por turno según ambulancia   |   Límite semanal: ${parseInt(mes) >= 7 ? 42 : 44} h`;
   sub1.font  = { name: 'Calibri', size: 10, italic: true, color: { argb: BLANCO } };
   sub1.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_MEDIO } };
   sub1.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -175,7 +172,7 @@ router.get('/turnos', async (req, res) => {
 
   ws2.mergeCells('A2:F2');
   const sub2 = ws2.getCell('A2');
-  sub2.value = `Límite semanal: ${limiteSemanal} horas   |   Celdas en rojo = semana excedida   |   Solo se cuentan horas del mes seleccionado`;
+  sub2.value = `Límite semanal: ${limiteSemanal} horas   |   Celdas en rojo = semana excedida`;
   sub2.font  = { name: 'Calibri', size: 10, italic: true, color: { argb: BLANCO } };
   sub2.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_MEDIO } };
   sub2.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -265,13 +262,76 @@ router.get('/turnos', async (req, res) => {
   resCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_OSCURO } };
   resCell.alignment = { horizontal: 'center', vertical: 'middle' };
   ws2.getRow(filaH).height = 24;
-  ws2.columns = [{ width: 28 }, { width: 22 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 14 }];
+  ws2.columns = [{ width: 28 }, { width: 14 }, { width: 14 }, { width: 10 }, { width: 10 }, { width: 14 }];
 
   const filename = `Turnos_${mesNombre}_${anio}.xlsx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   await wb.xlsx.write(res);
   res.end();
+});
+
+// ── Exportar Personal APH (incluye cédulas → exige la clave en el servidor) ──
+router.get('/personal', async (req, res) => {
+  const BACKUP_KEY = process.env.BACKUP_KEY;
+  if (!BACKUP_KEY) return res.status(503).json({ error: 'Exportación deshabilitada. Falta BACKUP_KEY en el servidor.' });
+  if (req.headers['x-backup-key'] !== BACKUP_KEY) return res.status(401).json({ error: 'Clave incorrecta.' });
+
+  try {
+    const { rows } = await db.query(
+      "SELECT nombre, codigo, rol, cedula, activo FROM paramedicos ORDER BY nombre ASC"
+    );
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Fundación Campbell';
+    const ws = wb.addWorksheet('Personal APH');
+
+    ws.mergeCells('A1:F1');
+    const tit = ws.getCell('A1');
+    tit.value = 'FUNDACIÓN CAMPBELL — PERSONAL APH';
+    tit.font  = { name: 'Calibri', size: 14, bold: true, color: { argb: BLANCO } };
+    tit.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_OSCURO } };
+    tit.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 30;
+
+    ws.mergeCells('A2:F2');
+    const sub = ws.getCell('A2');
+    sub.value = `Total: ${rows.length} personas   |   Generado: ${new Date().toLocaleDateString('es-CO')}`;
+    sub.font  = { name: 'Calibri', size: 9, italic: true, color: { argb: VERDE_OSCURO } };
+    sub.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 18;
+
+    const head = ws.addRow(['#', 'Nombre', 'Código', 'Rol', 'CC', 'Estado']);
+    head.eachCell(c => {
+      c.font = { name: 'Calibri', size: 10, bold: true, color: { argb: BLANCO } };
+      c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_HEADER } };
+      c.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    head.height = 22;
+
+    rows.forEach((r, i) => {
+      const row = ws.addRow([i + 1, r.nombre, r.codigo, r.rol || 'Paramédico', r.cedula || 'Sin CC', r.activo === false ? 'Inactivo' : 'Activo']);
+      row.eachCell((c, col) => {
+        c.font = { name: 'Calibri', size: 10 };
+        c.alignment = { horizontal: col === 2 ? 'left' : 'center', vertical: 'middle' };
+        if (i % 2 === 1) c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F3F8F4' } };
+      });
+      // La cédula se guarda como texto para no perder ceros ni usar notación científica
+      row.getCell(5).numFmt = '@';
+      row.height = 18;
+    });
+
+    ws.columns = [{ width: 6 }, { width: 34 }, { width: 12 }, { width: 16 }, { width: 18 }, { width: 12 }];
+
+    const filename = `Personal_APH_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    await wb.xlsx.write(res);
+    res.end();
+  } catch (e) {
+    console.error('[Exportar personal]', e.message);
+    if (!res.headersSent) res.status(500).json({ error: e.message });
+  }
 });
 
 module.exports = router;

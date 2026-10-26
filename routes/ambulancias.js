@@ -10,32 +10,39 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', async (req, res) => {
-  const { nombre, codigo, horas_turno, placa } = req.body;
-  if (!nombre || !codigo) return res.status(400).json({ error: 'Nombre y código son requeridos' });
+const IPS_VALIDAS = ['C30', 'CCM', 'CCSO'];
 
-  const codigoUp  = codigo.trim().toUpperCase();
+router.post('/', async (req, res) => {
+  const { nombre, horas_turno, placa, ips } = req.body;
+  if (!nombre || !String(nombre).trim()) return res.status(400).json({ error: 'El nombre es requerido' });
+  if (!IPS_VALIDAS.includes(ips)) return res.status(400).json({ error: 'Seleccioná la IPS registrada' });
+
+  // El código ya no se pide en el formulario: se genera a partir del nombre
+  const codigoUp  = String(nombre).trim().toUpperCase();
   const horasTurno = parseInt(horas_turno) || 11;
 
   try {
     const existe = await db.query('SELECT id FROM ambulancias WHERE codigo = $1', [codigoUp]);
-    if (existe.rows.length) return res.status(400).json({ error: 'Ya existe una ambulancia con ese código' });
+    if (existe.rows.length) return res.status(400).json({ error: 'Ya existe una ambulancia con ese nombre' });
 
     const { rows } = await db.query(
-      'INSERT INTO ambulancias (id, nombre, codigo, horas_turno, placa) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [randomUUID(), nombre.trim(), codigoUp, horasTurno, placa ? String(placa).trim().toUpperCase() : null]
+      'INSERT INTO ambulancias (id, nombre, codigo, horas_turno, placa, ips) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [randomUUID(), String(nombre).trim(), codigoUp, horasTurno, placa ? String(placa).trim().toUpperCase() : null, ips]
     );
     res.status(201).json(rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.put('/:id', async (req, res) => {
-  const { nombre, codigo, activa, horas_turno, placa } = req.body;
+  const { nombre, activa, horas_turno, placa, ips } = req.body;
+  if (ips !== undefined && ips !== null && !IPS_VALIDAS.includes(ips))
+    return res.status(400).json({ error: 'IPS no válida' });
   const horasTurno = parseInt(horas_turno) || 11;
   try {
+    // El código NO se modifica: los turnos ya cargados lo guardan como referencia histórica
     const { rowCount } = await db.query(
-      'UPDATE ambulancias SET nombre=$1, codigo=$2, activa=$3, horas_turno=$4, placa=$5 WHERE id=$6',
-      [nombre, codigo?.toUpperCase(), activa, horasTurno, placa ? String(placa).trim().toUpperCase() : null, req.params.id]
+      'UPDATE ambulancias SET nombre=$1, activa=$2, horas_turno=$3, placa=$4, ips=COALESCE($5, ips) WHERE id=$6',
+      [nombre, activa, horasTurno, placa ? String(placa).trim().toUpperCase() : null, ips || null, req.params.id]
     );
     res.json({ updated: rowCount });
   } catch (e) { res.status(500).json({ error: e.message }); }
