@@ -94,6 +94,13 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .malla-table th { background: var(--verde); color: white; padding: 11px 10px; text-align: center; font-weight: 600; font-size: 12.5px; }
 .malla-table td { padding: 7px 9px; border-bottom: 1px solid #E8F0EA; vertical-align: middle; }
 .malla-table tr:hover td { background: var(--verde-bg); }
+.malla-table tr.oculta { display: none; }
+.malla-table .semana-cab { cursor: pointer; user-select: none; }
+.malla-table .semana-cab td { background: #e0e7ff; color: #3730a3; font-size: 12px; font-weight: 600; padding: 8px 10px; }
+.malla-table .semana-cab:hover td { background: #c7d2fe; }
+.malla-table .semana-cab:focus-visible { outline: 2px solid #3730a3; outline-offset: -2px; }
+.semana-chevron { display: inline-block; width: 14px; transition: transform .15s; }
+.semana-cab.cerrada .semana-chevron { transform: rotate(-90deg); }
 .turno-chip { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 11.5px; font-weight: 600; margin: 2px; white-space: nowrap; }
 .turno-dia   { background: var(--dia-bg);   color: #7B5E00; border: 1px solid var(--dia-border); }
 .turno-noche { background: var(--noche-bg); color: #4A148C; border: 1px solid var(--noche-border); }
@@ -166,6 +173,7 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: white; }
 .form-group { display: flex; flex-direction: column; gap: 7px; }
+.campo-aviso { font-size: 12.5px; line-height: 1.4; color: #92400e; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 8px 10px; }
 .form-group label { font-size: 13.5px; font-weight: 600; color: var(--verde); }
 .form-group input, .form-group select { width: 100%; }
 .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }

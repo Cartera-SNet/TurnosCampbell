@@ -3,6 +3,11 @@ const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
 
+// Las reglas de asignación (nadie en dos ambulancias a la vez) aplican SOLO desde esta fecha.
+// Antes de ella todo se comporta como siempre. Se puede cambiar con la variable REGLAS_ASIGNACION_DESDE (AAAA-MM-DD).
+const REGLAS_DESDE = /^\d{4}-\d{2}-\d{2}$/.test(process.env.REGLAS_ASIGNACION_DESDE || '')
+  ? process.env.REGLAS_ASIGNACION_DESDE : '2026-10-27';
+
 // Las horas por turno se leen desde ambulancias.horas_turno en la BD
 // Si no está definido, se usa 11h por defecto
 async function getHorasTurno(ambulancia_id) {
@@ -30,7 +35,7 @@ function getLimiteHoras(fechaStr) {
 
 async function obtenerParamedicos(turno_id) {
   const { rows } = await db.query(
-    'SELECT paramedico_id AS id, paramedico_nombre AS nombre, firma FROM turno_paramedicos WHERE turno_id = $1',
+    'SELECT paramedico_id AS id, paramedico_nombre AS nombre, firma, funcion FROM turno_paramedicos WHERE turno_id = $1',
     [turno_id]
   );
   return rows;
@@ -60,8 +65,43 @@ router.get('/', async (req, res) => {
 });
 
 // Crear o actualizar turno
+// ¿Alguna de estas personas ya está en OTRA ambulancia el mismo día y turno?
+async function buscarConflictos(fecha, turno, ids, keyActual) {
+  const { rows } = await db.query(
+    `SELECT tp.paramedico_nombre AS nombre, t.ambulancia_codigo AS ambulancia
+     FROM turno_paramedicos tp JOIN turnos t ON t.id = tp.turno_id
+     WHERE t.fecha = $1 AND t.turno = $2 AND t.key <> $3 AND tp.paramedico_id = ANY($4::text[])
+     ORDER BY tp.paramedico_nombre, t.ambulancia_codigo`,
+    [fecha, turno, keyActual, ids]
+  );
+  return rows;
+}
+
+function mensajeConflictos(conflictos, fecha, turno) {
+  const [y, m, d] = fecha.split('-');
+  const detalle = conflictos.map(c => `${c.nombre} ya está en ${c.ambulancia}`).join('; ');
+  return `No se guardó: ${detalle} el ${d}/${m}/${y} en el turno de ${turno === 'dia' ? 'día' : 'noche'}. Una persona no puede estar en dos ambulancias al mismo tiempo.`;
+}
+
+// Personas que ya están asignadas en OTRA ambulancia ese día y turno (para bloquearlas en el formulario)
+router.get('/ocupados', async (req, res) => {
+  const { fecha, turno, excluir_key } = req.query;
+  if (!fecha || !['dia', 'noche'].includes(turno))
+    return res.status(400).json({ error: 'fecha y turno (dia|noche) requeridos' });
+  if (fecha < REGLAS_DESDE) return res.json([]);   // antes de la fecha de inicio no se bloquea a nadie
+  try {
+    const { rows } = await db.query(
+      `SELECT tp.paramedico_id AS id, t.ambulancia_codigo AS ambulancia
+       FROM turno_paramedicos tp JOIN turnos t ON t.id = tp.turno_id
+       WHERE t.fecha = $1 AND t.turno = $2 AND ($3::text IS NULL OR t.key <> $3)`,
+      [fecha, turno, excluir_key || null]
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 router.post('/', async (req, res) => {
-  const { fecha, ambulancia_id, ambulancia_codigo, turno, paramedicos } = req.body;
+  const { fecha, ambulancia_id, ambulancia_codigo, turno, paramedicos, empresa } = req.body;
 
   if (!fecha || !ambulancia_id || !turno || !paramedicos?.length)
     return res.status(400).json({ error: 'Datos incompletos' });
@@ -72,6 +112,32 @@ router.post('/', async (req, res) => {
 
   const semana = getSemana(fecha);
   const key    = `${fecha}_${ambulancia_id}_${turno}`;
+
+  // Reglas de asignación
+  const ids = paramedicos.map(p => String(p.id));
+  paramedicos.forEach(p => { if (!p.funcion) p.funcion = 'Paramédico'; });
+  if (paramedicos.some(p => !['Conductor', 'Paramédico'].includes(p.funcion)))
+    return res.status(400).json({ error: 'Función no válida (Conductor o Paramédico).' });
+  if (paramedicos.filter(p => p.funcion === 'Conductor').length > 1)
+    return res.status(400).json({ error: 'Solo puede haber un conductor por turno.' });
+  if (new Set(ids).size !== ids.length)
+    return res.status(400).json({ error: paramedicos.some(p => p.funcion === 'Conductor')
+      ? 'El conductor y el paramédico no pueden ser la misma persona.'
+      : 'No repitas a la misma persona en el mismo turno.' });
+  const conflictos = fecha >= REGLAS_DESDE ? await buscarConflictos(fecha, turno, ids, key) : [];
+  if (conflictos.length)
+    return res.status(409).json({ error: mensajeConflictos(conflictos, fecha, turno), conflictos });
+  // Empresa del turno: la elegida o, si no viene, la IPS de la ambulancia
+  let empresaFinal = empresa || null;
+  if (!empresaFinal) {
+    const a = await db.query('SELECT ips FROM ambulancias WHERE id = $1', [ambulancia_id]);
+    empresaFinal = a.rows[0]?.ips || null;
+  }
+  if (empresaFinal) {
+    const ok = await db.query('SELECT 1 FROM empresas WHERE codigo = $1 AND activa = TRUE', [empresaFinal]);
+    if (!ok.rows.length) return res.status(400).json({ error: 'Empresa no válida.' });
+  }
+
   const horas  = await getHorasTurno(ambulancia_id);
   const client = await db.connect();
 
@@ -93,16 +159,16 @@ router.post('/', async (req, res) => {
 
       await client.query(
         `UPDATE turnos SET fecha=$1, semana=$2, ambulancia_id=$3, ambulancia_codigo=$4,
-         turno=$5, horas=$6, actualizado=NOW() WHERE key=$7`,
-        [fecha, semana, ambulancia_id, ambulancia_codigo, turno, horas, key]
+         turno=$5, horas=$6, empresa=$7, actualizado=NOW() WHERE key=$8`,
+        [fecha, semana, ambulancia_id, ambulancia_codigo, turno, horas, empresaFinal, key]
       );
       await client.query('DELETE FROM turno_paramedicos WHERE turno_id = $1', [turnoId]);
     } else {
       turnoId = randomUUID();
       await client.query(
-        `INSERT INTO turnos (id, key, fecha, semana, ambulancia_id, ambulancia_codigo, turno, horas)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-        [turnoId, key, fecha, semana, ambulancia_id, ambulancia_codigo, turno, horas]
+        `INSERT INTO turnos (id, key, fecha, semana, ambulancia_id, ambulancia_codigo, turno, horas, empresa)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [turnoId, key, fecha, semana, ambulancia_id, ambulancia_codigo, turno, horas, empresaFinal]
       );
     }
 
@@ -111,8 +177,8 @@ router.post('/', async (req, res) => {
       // Si en el body viene una firma explícita para este paramédico, se usa esa.
       const firma = p.firma !== undefined ? p.firma : (firmasExistentes[p.id] || null);
       await client.query(
-        'INSERT INTO turno_paramedicos (turno_id, paramedico_id, paramedico_nombre, firma) VALUES ($1, $2, $3, $4)',
-        [turnoId, p.id, p.nombre, firma]
+        'INSERT INTO turno_paramedicos (turno_id, paramedico_id, paramedico_nombre, firma, funcion) VALUES ($1, $2, $3, $4, $5)',
+        [turnoId, p.id, p.nombre, firma, p.funcion]
       );
     }
 

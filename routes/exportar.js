@@ -140,7 +140,7 @@ router.get('/turnos', async (req, res) => {
       extrasDia.forEach(e => {
         const row = ws1.addRow([
           fecha.split('-').reverse().join('/'), diaNombre,
-          e.ambulancia_codigo || '—', '⚡ Extra', e.nota || '—', e.horas, e.paramedico_nombre
+          e.ambulancia_codigo || '—', '⚡ Extra', e.nota || '—', Number(e.horas), e.paramedico_nombre
         ]);
         row.eachCell((cell, col) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E8F5E9' } };
@@ -194,14 +194,14 @@ router.get('/turnos', async (req, res) => {
       if (!reporte[p.id]) reporte[p.id] = { nombre: p.nombre, semanas: {} };
       const sem = getSemana(t.fecha);
       if (!reporte[p.id].semanas[sem]) reporte[p.id].semanas[sem] = 0;
-      reporte[p.id].semanas[sem] += t.horas;
+      reporte[p.id].semanas[sem] += Number(t.horas);
     });
   });
   extras.forEach(e => {
     if (!reporte[e.paramedico_id]) reporte[e.paramedico_id] = { nombre: e.paramedico_nombre, semanas: {} };
     const sem = getSemana(e.fecha);
     if (!reporte[e.paramedico_id].semanas[sem]) reporte[e.paramedico_id].semanas[sem] = 0;
-    reporte[e.paramedico_id].semanas[sem] += e.horas;
+    reporte[e.paramedico_id].semanas[sem] += Number(e.horas);
   });
 
   let filaH = 4;

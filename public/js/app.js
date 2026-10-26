@@ -94,6 +94,7 @@ function fmtHoras(n) {
 const API = '';
 let paramedicos = [];
 let ambulancias = [];
+let empresas = [];   // catálogo de empresas / IPS (viene de la base de datos)
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -206,20 +207,22 @@ function exportarPDF() {
 }
 
 async function cargarDatos() {
-  [paramedicos, ambulancias] = await Promise.all([
+  [paramedicos, ambulancias, empresas] = await Promise.all([
     fetch('/api/paramedicos').then(r => r.json()),
-    fetch('/api/ambulancias').then(r => r.json())
+    fetch('/api/ambulancias').then(r => r.json()),
+    fetch('/api/empresas').then(r => r.json()).catch(() => [])
   ]);
+  if (!Array.isArray(empresas)) empresas = [];
 }
 
 // ============================================================
 // TOAST
 // ============================================================
-function toast(msg, tipo = 'success') {
+function toast(msg, tipo = 'success', ms = 3000) {
   const el = document.getElementById('toast');
   el.textContent = msg;
   el.className = 'toast ' + tipo + ' show';
-  setTimeout(() => el.classList.remove('show'), 3000);
+  setTimeout(() => el.classList.remove('show'), ms);
 }
 
 // ============================================================
@@ -238,6 +241,40 @@ window.addEventListener('click', e => {
 // ============================================================
 // MALLA MENSUAL
 // ============================================================
+// ── Semanas plegables en la malla ──
+// Las semanas que ya terminaron (su domingo es anterior a hoy) se recogen solas;
+// la semana actual y las futuras quedan abiertas. Lo que el usuario abre/cierra a mano se respeta.
+const _semanasManual = {};   // lunes de la semana (YYYY-MM-DD) -> true abierta / false cerrada
+
+function fechaLocalISO(d = new Date()) {   // fecha del dispositivo (no UTC: evita adelantar el día de noche)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function sumarDiasISO(iso, n) {
+  const d = new Date(iso + 'T12:00:00');
+  d.setDate(d.getDate() + n);
+  return fechaLocalISO(d);
+}
+
+function semanaAbierta(lunesISO) {
+  if (lunesISO in _semanasManual) return _semanasManual[lunesISO];
+  return sumarDiasISO(lunesISO, 6) >= fechaLocalISO();   // abierta si aún no termina
+}
+
+function rangoSemana(lunesISO) {
+  const [ya, ma, da] = lunesISO.split('-');
+  const [yb, mb, db] = sumarDiasISO(lunesISO, 6).split('-');
+  return `${da}/${ma}${ya !== yb ? '/' + ya : ''} al ${db}/${mb}/${yb}`;
+}
+
+function toggleSemana(lunesISO) {
+  const abrir = !semanaAbierta(lunesISO);
+  _semanasManual[lunesISO] = abrir;
+  document.querySelectorAll(`tr.fila-semana[data-semana="${lunesISO}"]`).forEach(tr => tr.classList.toggle('oculta', !abrir));
+  const cab = document.querySelector(`tr.semana-cab[data-semana="${lunesISO}"]`);
+  if (cab) { cab.classList.toggle('cerrada', !abrir); cab.setAttribute('aria-expanded', String(abrir)); }
+}
+
 async function cargarMalla() {
   const mes = document.getElementById('malla-mes').value;
   const anio = document.getElementById('malla-anio').value;
@@ -303,14 +340,16 @@ async function cargarMalla() {
 
     // Separador de semana
     const semana = getSemana(fecha);
+    const semAbierta = semanaAbierta(semana);
     if (semana !== semanaAnterior) {
-      html += `<tr><td colspan="6" style="background:#e0e7ff;color:#3730a3;font-size:12px;font-weight:600;padding:6px 8px">Semana del ${formatFecha(semana)}</td></tr>`;
+      html += `<tr class="semana-cab${semAbierta ? '' : ' cerrada'}" data-semana="${semana}" role="button" tabindex="0" aria-expanded="${semAbierta}" title="Clic para mostrar u ocultar la semana" onclick="toggleSemana('${semana}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleSemana('${semana}')}"><td colspan="6"><span class="semana-chevron">▾</span> Semana del ${rangoSemana(semana)}</td></tr>`;
       semanaAnterior = semana;
     }
+    const semAttr = `class="fila-semana${semAbierta ? '' : ' oculta'}" data-semana="${semana}"`;
 
     if (data.turnos.length === 0 && data.extras.length === 0) {
       const diaNum = parseInt(fecha.split('-')[2]);
-      html += `<tr style="${rowStyle}">
+      html += `<tr ${semAttr} style="${rowStyle}">
         <td style="color:#9ca3af">${diaSemana}</td>
         <td style="color:#9ca3af">${diaNum}</td>
         <td colspan="3" style="color:#d1d5db;font-style:italic;font-size:12px">Sin turnos</td>
@@ -333,8 +372,11 @@ async function cargarMalla() {
 
         if (row.tipo === 'turno') {
           const t = row.data;
-          const paraStr = t.paramedicos.map(p => p.nombre.split(' ')[0]).join(', ');
-          html += `<tr style="${rowStyle}">
+          const paraStr = [...t.paramedicos]
+            .sort((a, b) => (b.funcion === 'Conductor') - (a.funcion === 'Conductor'))
+            .map(p => p.nombre.split(' ')[0] + (p.funcion === 'Conductor' ? ' (cond.)' : ''))
+            .join(', ');
+          html += `<tr ${semAttr} style="${rowStyle}">
             <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-left:12px">${isFirst ? diaSemana : ''}</td>
             <td style="font-weight:600;border-top:${bt};color:${dayColor}">${isFirst ? diaNum : ''}</td>
             <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-size:13px;font-weight:500">${t.ambulancia_codigo}</span></td>
@@ -345,7 +387,7 @@ async function cargarMalla() {
         } else {
           const e = row.data;
           const pm = paramedicos.find(p => p.id === e.paramedico_id);
-          html += `<tr style="${rowStyle}">
+          html += `<tr ${semAttr} style="${rowStyle}">
             <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-left:12px">${isFirst ? diaSemana : ''}</td>
             <td style="font-weight:600;border-top:${bt};color:${dayColor}">${isFirst ? diaNum : ''}</td>
             <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-size:13px;font-weight:500">${e.ambulancia_codigo || '-'}</span></td>
@@ -379,10 +421,22 @@ function formatFecha(fechaStr) {
 // ============================================================
 // MODAL TURNO
 // ============================================================
+function mostrarAvisoTurno(msg) {
+  const a = document.getElementById('turno-aviso');
+  a.textContent = '⚠️ ' + msg;
+  a.style.display = 'block';
+  a.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function ocultarAvisoTurno() {
+  const a = document.getElementById('turno-aviso');
+  if (a) a.style.display = 'none';
+}
+
 function abrirModalTurno(fecha = '') {
+  ocultarAvisoTurno();
   const modal = document.getElementById('modal-turno');
-  const hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('turno-fecha').value = fecha || hoy;
+  document.getElementById('turno-fecha').value = fecha || fechaLocalISO();
 
   const selAmb = document.getElementById('turno-ambulancia');
   selAmb.innerHTML = '<option value="">-- Seleccionar ambulancia --</option>';
@@ -390,15 +444,86 @@ function abrirModalTurno(fecha = '') {
     selAmb.innerHTML += `<option value="${a.id}" data-codigo="${a.codigo}">${a.codigo} - ${a.nombre}</option>`;
   });
 
+  llenarSelectEmpresas(document.getElementById('turno-empresa'), '', '— Seleccionar empresa —');
   document.querySelector('input[name="turno-tipo"][value="dia"]').checked = true;
 
-  const cont = document.getElementById('paramedicos-seleccion');
-  cont.innerHTML = `<div class="paramedico-row">
+  // Conductor y paramédico vienen listos; cualquier persona del personal puede ser conductor (el rol no limita)
+  document.getElementById('turno-conductor').innerHTML = `<option value="">-- Seleccionar --</option>${optsParamedicos()}`;
+  document.getElementById('paramedicos-seleccion').innerHTML = `<div class="paramedico-row">
     <select class="select-paramedico"><option value="">-- Seleccionar --</option>${optsParamedicos()}</select>
     <button class="btn-icon" onclick="agregarFilaParamedico()">+</button>
   </div>`;
 
+  _ocupados = [];
   modal.classList.add('open');
+  actualizarOcupados();
+}
+
+// ── Reglas en el formulario: nadie repetido y nadie ya asignado a otra ambulancia ese día y turno ──
+let _ocupados = [];          // [{ id, ambulancia }] según el servidor
+let _ocupadosSolicitud = 0;  // evita que una respuesta lenta pise a una más nueva
+
+function llenarSelectEmpresas(sel, valor = '', placeholder = '— Seleccionar —') {
+  sel.innerHTML = `<option value="">${placeholder}</option>` +
+    empresas.map(e => `<option value="${e.codigo}">${e.codigo} - ${e.nombre}</option>`).join('');
+  sel.value = valor || '';
+}
+
+function selectsTripulacion() {
+  return [document.getElementById('turno-conductor'), ...document.querySelectorAll('.select-paramedico')];
+}
+
+function alCambiarModalTurno(ev) {
+  ocultarAvisoTurno();
+  const t = ev.target;
+  if (t.id === 'turno-ambulancia') {
+    const a = ambulancias.find(x => x.id === t.value);
+    if (a?.ips) document.getElementById('turno-empresa').value = a.ips;   // la empresa sugerida es la IPS de la ambulancia
+    actualizarOcupados();
+  } else if (t.id === 'turno-fecha' || t.name === 'turno-tipo') {
+    actualizarOcupados();
+  } else if (t.id === 'turno-conductor' || t.classList.contains('select-paramedico')) {
+    refrescarOpcionesTurno();
+  }
+}
+
+async function actualizarOcupados() {
+  const fecha = document.getElementById('turno-fecha').value;
+  const turno = document.querySelector('input[name="turno-tipo"]:checked')?.value;
+  const ambId = document.getElementById('turno-ambulancia').value;
+  const mia = ++_ocupadosSolicitud;
+  if (!fecha || !turno) { _ocupados = []; refrescarOpcionesTurno(); return; }
+  const excluir = ambId ? `&excluir_key=${encodeURIComponent(`${fecha}_${ambId}_${turno}`)}` : '';
+  let datos = [];
+  try {
+    datos = await fetch(`/api/turnos/ocupados?fecha=${fecha}&turno=${turno}${excluir}`).then(r => r.json());
+  } catch (e) { datos = []; }
+  if (mia !== _ocupadosSolicitud) return;   // llegó una respuesta más nueva
+  _ocupados = Array.isArray(datos) ? datos : [];
+  refrescarOpcionesTurno();
+}
+
+function refrescarOpcionesTurno() {
+  const selects = selectsTripulacion();
+  const quitados = [];
+  for (let pasada = 0; pasada < 2; pasada++) {
+    const elegidos = selects.map(s => s.value);
+    let cambio = false;
+    selects.forEach((s, i) => {
+      [...s.options].forEach(o => {
+        if (!o.value) return;
+        const nombre = o.dataset.nombre;
+        const ocupado = _ocupados.find(x => x.id === o.value);
+        const enOtro = elegidos.some((v, j) => j !== i && v === o.value);
+        o.disabled = Boolean(ocupado) || enOtro;
+        o.textContent = ocupado ? `${nombre} — ya en ${ocupado.ambulancia}` : (enOtro ? `${nombre} — ya elegido` : nombre);
+      });
+      const sel = s.selectedOptions[0];
+      if (s.value && sel && sel.disabled) { quitados.push(sel.dataset.nombre); s.value = ''; cambio = true; }
+    });
+    if (!cambio) break;
+  }
+  if (quitados.length) toast(`Se quitó a ${quitados.join(', ')}: ya está asignado en otra ambulancia ese día y turno`, 'error');
 }
 
 function optsParamedicos() {
@@ -407,13 +532,20 @@ function optsParamedicos() {
 
 function agregarFilaParamedico() {
   const cont = document.getElementById('paramedicos-seleccion');
-  const filas = cont.querySelectorAll('.paramedico-row');
-  if (filas.length >= 3) { toast('Máximo 3 paramédicos por turno', 'error'); return; }
+  const filas = cont.querySelectorAll('.paramedico-row').length;
+  const conductor = document.getElementById('turno-conductor').value ? 1 : 0;
+  if (filas + conductor >= 3) { toast('La tripulación es de máximo 3 personas (conductor incluido)', 'error'); return; }
   const div = document.createElement('div');
   div.className = 'paramedico-row';
   div.innerHTML = `<select class="select-paramedico"><option value="">-- Seleccionar --</option>${optsParamedicos()}</select>
-    <button class="btn-remove-row" onclick="this.parentElement.remove()">✕</button>`;
+    <button class="btn-remove-row" onclick="quitarFilaParamedico(this)">✕</button>`;
   cont.appendChild(div);
+  refrescarOpcionesTurno();
+}
+
+function quitarFilaParamedico(btn) {
+  btn.parentElement.remove();
+  refrescarOpcionesTurno();
 }
 
 async function guardarTurno() {
@@ -422,26 +554,34 @@ async function guardarTurno() {
   const ambulancia_id = ambSel.value;
   const ambulancia_codigo = ambSel.selectedOptions[0]?.dataset.codigo || '';
   const turno = document.querySelector('input[name="turno-tipo"]:checked').value;
+  const empresa = document.getElementById('turno-empresa').value;
 
-  const selects = document.querySelectorAll('.select-paramedico');
+  const conductorSel = document.getElementById('turno-conductor');
   const paramedArr = [];
-  selects.forEach(s => {
-    if (s.value) {
-      paramedArr.push({ id: s.value, nombre: s.selectedOptions[0].dataset.nombre });
-    }
+  if (conductorSel.value) {
+    paramedArr.push({ id: conductorSel.value, nombre: conductorSel.selectedOptions[0].dataset.nombre, funcion: 'Conductor' });
+  }
+  document.querySelectorAll('.select-paramedico').forEach(s => {
+    if (s.value) paramedArr.push({ id: s.value, nombre: s.selectedOptions[0].dataset.nombre, funcion: 'Paramédico' });
   });
 
   if (!fecha || !ambulancia_id || !paramedArr.length) {
     toast('Completa todos los campos requeridos', 'error'); return;
   }
+  if (paramedArr.length > 3) {
+    mostrarAvisoTurno('La tripulación no puede superar 3 personas (conductor incluido).'); return;
+  }
+  if (new Set(paramedArr.map(p => p.id)).size !== paramedArr.length) {
+    mostrarAvisoTurno(conductorSel.value ? 'El conductor y el paramédico no pueden ser la misma persona.' : 'No repitas a la misma persona en el mismo turno.'); return;
+  }
 
   const res = await fetch('/api/turnos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fecha, ambulancia_id, ambulancia_codigo, turno, paramedicos: paramedArr })
+    body: JSON.stringify({ fecha, ambulancia_id, ambulancia_codigo, turno, empresa, paramedicos: paramedArr })
   });
   const data = await res.json();
-  if (data.error) { toast(data.error, 'error'); return; }
+  if (data.error) { mostrarAvisoTurno(data.error); toast('No se pudo guardar el turno', 'error'); return; }
 
   toast('Turno guardado correctamente');
   cerrarModal('modal-turno');
@@ -471,8 +611,7 @@ async function eliminarExtra(id) {
 // ============================================================
 function abrirModalExtra() {
   const modal = document.getElementById('modal-extra');
-  const hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('extra-fecha').value = hoy;
+  document.getElementById('extra-fecha').value = fechaLocalISO();   // fecha del dispositivo (no UTC: de noche adelantaba el día)
   document.getElementById('extra-horas').value = '';
   document.getElementById('extra-nota').value = '';
 
@@ -683,6 +822,25 @@ function siguienteCodigoParamedico() {
   return 'P' + String(siguiente).padStart(4, '0');
 }
 
+function normalizarCedula(c) {
+  return String(c || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+}
+
+// Avisa en vivo si la cédula escrita ya pertenece a otra persona
+function verificarCedulaDuplicada() {
+  const aviso = document.getElementById('paramedico-cedula-aviso');
+  const idActual = document.getElementById('paramedico-id').value;
+  const norm = normalizarCedula(document.getElementById('paramedico-cedula').value);
+  const dup = norm ? paramedicos.find(p => p.id !== idActual && normalizarCedula(p.cedula) === norm) : null;
+  if (dup) {
+    aviso.textContent = `⚠️ Esta cédula ya está registrada a nombre de ${dup.nombre} (${dup.codigo}). No se puede registrar a la misma persona dos veces.`;
+    aviso.style.display = 'block';
+  } else {
+    aviso.style.display = 'none';
+  }
+  return dup || null;
+}
+
 function abrirModalParamedico(pm = null) {
   document.getElementById('modal-paramedico-title').textContent = pm ? 'Editar Personal' : 'Nuevo Personal';
   document.getElementById('paramedico-id').value = pm?.id || '';
@@ -690,6 +848,7 @@ function abrirModalParamedico(pm = null) {
   document.getElementById('paramedico-codigo').value = pm?.codigo || (pm ? '' : siguienteCodigoParamedico());
   document.getElementById('paramedico-cedula').value = pm?.cedula || '';
   document.getElementById('paramedico-rol').value = pm?.rol || 'Paramédico';
+  verificarCedulaDuplicada();
   document.getElementById('modal-paramedico').classList.add('open');
   setTimeout(() => document.getElementById('paramedico-nombre').focus(), 100);
 }
@@ -706,6 +865,7 @@ async function guardarParamedico() {
   const rol = document.getElementById('paramedico-rol').value;
 
   if (!nombre || !codigo) { toast('Nombre y código son requeridos', 'error'); return; }
+  if (verificarCedulaDuplicada()) { toast('Esa cédula ya está registrada. Revisá el aviso en el formulario.', 'error'); return; }
 
   const url = id ? `/api/paramedicos/${id}` : '/api/paramedicos';
   const method = id ? 'PUT' : 'POST';
@@ -725,7 +885,7 @@ async function eliminarParamedico(id) {
       try {
         const res = await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
         const data = await res.json();
-        if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error'); return; }
+        if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error', 9000); return; }
         toast('Paramédico eliminado');
         await cargarDatos();
         renderParamedicos();
@@ -786,7 +946,7 @@ function abrirModalAmbulancia(amb = null) {
   document.getElementById('ambulancia-id').value = amb?.id || '';
   document.getElementById('ambulancia-nombre').value = amb?.nombre || '';
   document.getElementById('ambulancia-placa').value = amb?.placa || '';
-  document.getElementById('ambulancia-ips').value = amb?.ips || '';
+  llenarSelectEmpresas(document.getElementById('ambulancia-ips'), amb?.ips, '— Seleccionar IPS —');
   document.getElementById('ambulancia-horas').value = amb?.horas_turno || '11';
   document.getElementById('ambulancia-estado').value = (amb?.activa === false) ? 'false' : 'true';
   document.getElementById('modal-ambulancia').classList.add('open');
@@ -913,6 +1073,8 @@ function abrirModalImportar(tipo) {
   const label = tipo === 'paramedicos' ? 'Paramédicos' : 'Ambulancias';
   document.getElementById('modal-importar-title').textContent = `📥 Importar ${label} desde Excel`;
   document.getElementById('importar-archivo').value = '';
+  const nota = document.getElementById('importar-nota');
+  nota.style.display = tipo === 'ambulancias' ? 'block' : 'none';
   document.getElementById('importar-resultado').style.display = 'none';
   document.getElementById('importar-resultado').innerHTML = '';
   document.getElementById('btn-importar-confirm').disabled = false;

@@ -60,10 +60,12 @@ router.post('/ambulancias', upload.single('archivo'), async (req, res) => {
 
   if (!rows.length) return res.status(400).json({ error: 'El archivo está vacío' });
 
+  // Encabezados sin importar mayúsculas/espacios
+  rows = rows.map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [String(k).trim().toLowerCase(), v])));
   const primera = rows[0];
-  if (!('nombre' in primera) || !('codigo' in primera)) {
+  if (!('nombre' in primera)) {
     return res.status(400).json({
-      error: `El archivo debe tener columnas "nombre" y "codigo". Se encontraron: ${Object.keys(primera).join(', ')}`
+      error: `El archivo debe tener al menos la columna "nombre" (opcionales: codigo, placa, ips). Se encontraron: ${Object.keys(primera).join(', ')}`
     });
   }
 
@@ -71,8 +73,19 @@ router.post('/ambulancias', upload.single('archivo'), async (req, res) => {
 
   for (const row of rows) {
     const nombre = String(row.nombre || '').trim();
-    const codigo = String(row.codigo || '').trim().toUpperCase();
+    const codigo = String(row.codigo || nombre).trim().toUpperCase();   // sin columna codigo: se usa el nombre (como en el formulario)
+    const placa  = String(row.placa || '').trim().toUpperCase() || null;
+    const ips    = String(row.ips || '').trim().toUpperCase() || null;
     if (!nombre || !codigo) { resultados.omitidos++; continue; }
+
+    if (ips) {
+      const okIps = await db.query('SELECT 1 FROM empresas WHERE codigo=$1 AND activa = TRUE', [ips]);
+      if (!okIps.rows.length) {
+        resultados.omitidos++;
+        resultados.errores.push(`IPS "${ips}" no existe (${nombre})`);
+        continue;
+      }
+    }
 
     const existe = await db.query('SELECT id FROM ambulancias WHERE codigo=$1', [codigo]);
     if (existe.rows.length) {
@@ -80,7 +93,7 @@ router.post('/ambulancias', upload.single('archivo'), async (req, res) => {
       resultados.errores.push(`Código "${codigo}" ya existe (${nombre})`);
       continue;
     }
-    await db.query('INSERT INTO ambulancias (id, nombre, codigo) VALUES ($1,$2,$3)', [randomUUID(), nombre, codigo]);
+    await db.query('INSERT INTO ambulancias (id, nombre, codigo, placa, ips) VALUES ($1,$2,$3,$4,$5)', [randomUUID(), nombre, codigo, placa, ips]);
     resultados.insertados++;
   }
 

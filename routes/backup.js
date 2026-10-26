@@ -16,14 +16,15 @@ function auth(req, res, next) {
 // Helper: exportar todos los datos como objeto JSON
 async function exportarDatos() {
   const [{ rows: paramedicos }, { rows: ambulancias }, { rows: turnos },
-         { rows: turno_paramedicos }, { rows: extras }] = await Promise.all([
+         { rows: turno_paramedicos }, { rows: extras }, { rows: empresas }] = await Promise.all([
     db.query('SELECT * FROM paramedicos ORDER BY nombre'),
     db.query('SELECT * FROM ambulancias ORDER BY codigo'),
     db.query('SELECT * FROM turnos ORDER BY fecha'),
     db.query('SELECT * FROM turno_paramedicos'),
     db.query('SELECT * FROM extras ORDER BY fecha'),
+    db.query('SELECT * FROM empresas ORDER BY codigo'),
   ]);
-  return { exportado: new Date().toISOString(), paramedicos, ambulancias, turnos, turno_paramedicos, extras };
+  return { exportado: new Date().toISOString(), empresas, paramedicos, ambulancias, turnos, turno_paramedicos, extras };
 }
 
 // Helper: enviar email con Resend

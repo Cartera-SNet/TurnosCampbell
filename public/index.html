@@ -191,7 +191,7 @@
       <h2>📅 Asignar Turno</h2>
       <button class="modal-close" onclick="cerrarModal('modal-turno')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" onchange="alCambiarModalTurno(event)">
       <div class="form-group">
         <label>Fecha</label>
         <input type="date" id="turno-fecha">
@@ -201,20 +201,28 @@
         <select id="turno-ambulancia"></select>
       </div>
       <div class="form-group">
+        <label>Empresa</label>
+        <select id="turno-empresa"></select>
+      </div>
+      <div class="form-group">
         <label>Tipo de Turno</label>
         <div class="radio-group">
           <label class="radio-label">
             <input type="radio" name="turno-tipo" value="dia" checked>
-            ☀️ Día &nbsp;<small>(7am–6pm · 11h)</small>
+            ☀️ Día &nbsp;<small>(7am–6pm)</small>
           </label>
           <label class="radio-label">
             <input type="radio" name="turno-tipo" value="noche">
-            🌙 Noche &nbsp;<small>(6pm–7am · 13h)</small>
+            🌙 Noche &nbsp;<small>(6pm–7am)</small>
           </label>
         </div>
       </div>
       <div class="form-group">
-        <label>Paramédicos <small style="font-weight:400;color:var(--text-muted)">(mín. 1, máx. 3)</small></label>
+        <label>Conductor <small style="font-weight:400;color:var(--text-muted)">(opcional · puede ser cualquier persona del personal)</small></label>
+        <select id="turno-conductor"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="form-group">
+        <label>Paramédico <small style="font-weight:400;color:var(--text-muted)">(tripulación: mín. 1 persona, máx. 3)</small></label>
         <div id="paramedicos-seleccion">
           <div class="paramedico-row">
             <select class="select-paramedico"><option value="">— Seleccionar —</option></select>
@@ -222,6 +230,7 @@
           </div>
         </div>
       </div>
+      <div id="turno-aviso" class="campo-aviso" role="alert" style="display:none"></div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModal('modal-turno')">Cancelar</button>
@@ -295,7 +304,8 @@
       </div>
       <div class="form-group">
         <label>Cédula</label>
-        <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890">
+        <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890" oninput="verificarCedulaDuplicada()">
+        <div id="paramedico-cedula-aviso" class="campo-aviso" style="display:none"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -324,12 +334,7 @@
       </div>
       <div class="form-group">
         <label>IPS registrada</label>
-        <select id="ambulancia-ips">
-          <option value="">— Seleccionar IPS —</option>
-          <option value="C30">C30 - Fundacion Campbell</option>
-          <option value="CCM">CCM - Fundacion Campbell</option>
-          <option value="CCSO">CCSO - Fundacion Campbell</option>
-        </select>
+        <select id="ambulancia-ips"><option value="">— Seleccionar IPS —</option></select>
       </div>
       <div class="form-group">
         <label>Horas por turno <small style="font-weight:400;color:var(--text-muted)">(12 = 7-7, 11 = estándar, 8 = urgencias/hosp.)</small></label>
@@ -378,6 +383,7 @@
             <td style="padding:5px 10px;border:1px solid var(--border);">P002</td>
           </tr>
         </table>
+        <div id="importar-nota" style="display:none;margin-top:8px;">Para <strong>ambulancias</strong> solo <code>nombre</code> es obligatoria. Opcionales: <code>codigo</code> (si falta se usa el nombre), <code>placa</code> e <code>ips</code> (C30, CCM o CCSO).</div>
       </div>
       <div class="form-group">
         <label>Seleccionar archivo Excel</label>

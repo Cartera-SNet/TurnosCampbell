@@ -10,12 +10,16 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-const IPS_VALIDAS = ['C30', 'CCM', 'CCSO'];
+async function empresaValida(codigo) {
+  if (!codigo) return false;
+  const { rows } = await db.query('SELECT 1 FROM empresas WHERE codigo = $1 AND activa = TRUE', [codigo]);
+  return rows.length > 0;
+}
 
 router.post('/', async (req, res) => {
   const { nombre, horas_turno, placa, ips } = req.body;
   if (!nombre || !String(nombre).trim()) return res.status(400).json({ error: 'El nombre es requerido' });
-  if (!IPS_VALIDAS.includes(ips)) return res.status(400).json({ error: 'Seleccioná la IPS registrada' });
+  if (!(await empresaValida(ips))) return res.status(400).json({ error: 'Seleccioná la IPS registrada' });
 
   // El código ya no se pide en el formulario: se genera a partir del nombre
   const codigoUp  = String(nombre).trim().toUpperCase();
@@ -35,7 +39,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   const { nombre, activa, horas_turno, placa, ips } = req.body;
-  if (ips !== undefined && ips !== null && !IPS_VALIDAS.includes(ips))
+  if (ips && !(await empresaValida(ips)))
     return res.status(400).json({ error: 'IPS no válida' });
   const horasTurno = parseInt(horas_turno) || 11;
   try {

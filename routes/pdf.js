@@ -23,6 +23,12 @@ function getSemana(fechaStr) {
   return lunes.toISOString().split('T')[0];
 }
 function fmtFecha(f) { return f.split('-').reverse().join('/'); }
+// Semana (lunes a domingo) como rango: "31/08 al 06/09/2026" (igual que el Excel y la pantalla)
+function fmtSemana(lunesISO) {
+  const a = new Date(lunesISO + 'T12:00:00'), b = new Date(a); b.setDate(a.getDate() + 6);
+  const p = n => String(n).padStart(2, '0');
+  return `${p(a.getDate())}/${p(a.getMonth() + 1)}${a.getFullYear() !== b.getFullYear() ? '/' + a.getFullYear() : ''} al ${p(b.getDate())}/${p(b.getMonth() + 1)}/${b.getFullYear()}`;
+}
 
 function drawRect(doc, x, y, w, h, color) {
   doc.save().rect(x, y, w, h).fill(color).restore();
@@ -155,7 +161,7 @@ router.get('/turnos', async (req, res) => {
       drawRect(doc, ML, y, bodyW, 13, VERDE_CL);
       doc.save().moveTo(ML, y).lineTo(ML + bodyW, y).strokeColor(VERDE_M).lineWidth(0.8).stroke().restore();
       doc.fillColor(VERDE).font('Helvetica-Bold').fontSize(7)
-         .text(`  Semana del ${fmtFecha(semana)}`, ML + 3, y + 3, { width: bodyW - 6 });
+         .text(`  Semana del ${fmtSemana(semana)}`, ML + 3, y + 3, { width: bodyW - 6 });
       y += 13;
       semAnt = semana;
     }
@@ -208,8 +214,8 @@ router.get('/turnos', async (req, res) => {
   pieAgina(doc, pageW, pageH, mesNombre, anio);
 
   const colsH = [
-    { x: ML,       w: 160, label: 'Paramédico',   align: 'left'   },
-    { x: ML+160,   w: 80,  label: 'Semana',       align: 'center' },
+    { x: ML,       w: 130, label: 'Paramédico',   align: 'left'   },
+    { x: ML+130,   w: 110, label: 'Semana',       align: 'center' },
     { x: ML+240,   w: 70,  label: 'Horas Semana', align: 'center' },
     { x: ML+310,   w: 55,  label: 'Límite',       align: 'center' },
     { x: ML+365,   w: 55,  label: 'Exceso',       align: 'center' },
@@ -224,13 +230,13 @@ router.get('/turnos', async (req, res) => {
     t.paramedicos.forEach(p => {
       if (!reporte[p.id]) reporte[p.id] = { nombre: p.nombre, semanas: {} };
       const sem = getSemana(t.fecha);
-      reporte[p.id].semanas[sem] = (reporte[p.id].semanas[sem] || 0) + t.horas;
+      reporte[p.id].semanas[sem] = (reporte[p.id].semanas[sem] || 0) + Number(t.horas);
     });
   });
   extras.forEach(e => {
     if (!reporte[e.paramedico_id]) reporte[e.paramedico_id] = { nombre: e.paramedico_nombre, semanas: {} };
     const sem = getSemana(e.fecha);
-    reporte[e.paramedico_id].semanas[sem] = (reporte[e.paramedico_id].semanas[sem] || 0) + e.horas;
+    reporte[e.paramedico_id].semanas[sem] = (reporte[e.paramedico_id].semanas[sem] || 0) + Number(e.horas);
   });
 
   let totalHorasMes = 0;
@@ -257,7 +263,7 @@ router.get('/turnos', async (req, res) => {
       const bg = alerta ? ROJO_BG : (idx % 2 === 0 ? '#F9FBF9' : null);
       yH = filaTD(doc, [
         idx === 0 ? r.nombre : '',
-        fmtFecha(sem),
+        fmtSemana(sem),
         `${horas} h`,
         `${limite} h`,
         exceso > 0 ? `+${exceso} h` : '—',

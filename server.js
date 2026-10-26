@@ -11,6 +11,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/paramedicos', require('./routes/paramedicos'));
 app.use('/api/ambulancias', require('./routes/ambulancias'));
+app.use('/api/empresas',    require('./routes/empresas'));
 app.use('/api/turnos',      require('./routes/turnos'));
 app.use('/api/extras',      require('./routes/extras'));
 app.use('/api/exportar',    require('./routes/exportar'));
