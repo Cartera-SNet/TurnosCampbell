@@ -373,7 +373,7 @@ async function cargarMalla() {
         if (row.tipo === 'turno') {
           const t = row.data;
           const paraStr = [...t.paramedicos]
-            .sort((a, b) => (b.funcion === 'Conductor') - (a.funcion === 'Conductor'))
+            .sort((a, b) => (a.funcion === 'Conductor') - (b.funcion === 'Conductor'))   // paramédico(s) primero, conductor al final
             .map(p => p.nombre.split(' ')[0] + (p.funcion === 'Conductor' ? ' (cond.)' : ''))
             .join(', ');
           html += `<tr ${semAttr} style="${rowStyle}">
@@ -470,7 +470,7 @@ function llenarSelectEmpresas(sel, valor = '', placeholder = '— Seleccionar �
 }
 
 function selectsTripulacion() {
-  return [document.getElementById('turno-conductor'), ...document.querySelectorAll('.select-paramedico')];
+  return [...document.querySelectorAll('.select-paramedico'), document.getElementById('turno-conductor')];
 }
 
 function alCambiarModalTurno(ev) {
@@ -558,12 +558,12 @@ async function guardarTurno() {
 
   const conductorSel = document.getElementById('turno-conductor');
   const paramedArr = [];
-  if (conductorSel.value) {
-    paramedArr.push({ id: conductorSel.value, nombre: conductorSel.selectedOptions[0].dataset.nombre, funcion: 'Conductor' });
-  }
   document.querySelectorAll('.select-paramedico').forEach(s => {
     if (s.value) paramedArr.push({ id: s.value, nombre: s.selectedOptions[0].dataset.nombre, funcion: 'Paramédico' });
   });
+  if (conductorSel.value) {
+    paramedArr.push({ id: conductorSel.value, nombre: conductorSel.selectedOptions[0].dataset.nombre, funcion: 'Conductor' });
+  }
 
   if (!fecha || !ambulancia_id || !paramedArr.length) {
     toast('Completa todos los campos requeridos', 'error'); return;

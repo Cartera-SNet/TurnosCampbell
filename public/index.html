@@ -218,10 +218,6 @@
         </div>
       </div>
       <div class="form-group">
-        <label>Conductor <small style="font-weight:400;color:var(--text-muted)">(opcional · puede ser cualquier persona del personal)</small></label>
-        <select id="turno-conductor"><option value="">— Seleccionar —</option></select>
-      </div>
-      <div class="form-group">
         <label>Paramédico <small style="font-weight:400;color:var(--text-muted)">(tripulación: mín. 1 persona, máx. 3)</small></label>
         <div id="paramedicos-seleccion">
           <div class="paramedico-row">
@@ -229,6 +225,10 @@
             <button class="btn-icon" onclick="agregarFilaParamedico()">+</button>
           </div>
         </div>
+      </div>
+      <div class="form-group">
+        <label>Conductor <small style="font-weight:400;color:var(--text-muted)">(opcional · puede ser cualquier persona del personal)</small></label>
+        <select id="turno-conductor"><option value="">— Seleccionar —</option></select>
       </div>
       <div id="turno-aviso" class="campo-aviso" role="alert" style="display:none"></div>
     </div>
