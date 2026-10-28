@@ -104,7 +104,21 @@ async function inicializar() {
       END IF;
     END $$`).catch(e => console.warn('[DB] relaciones con empresas NO creadas:', e.message));
 
-    // Una cédula no puede repetirse (ignora puntos/espacios; las personas sin cédula no cuentan)
+    // Quien aún no tiene cédula recibe un código provisional consecutivo (SC0001, SC0002…) hasta que se cargue la real.
+    // El número sale de una secuencia: nunca se reutiliza, aunque después la persona reciba su cédula real.
+    await pool.query(`DO $$
+      DECLARE r RECORD; m BIGINT; cur BIGINT;
+      BEGIN
+        CREATE SEQUENCE IF NOT EXISTS seq_cedula_provisional;
+        SELECT COALESCE(MAX(CAST(substring(cedula FROM 3) AS BIGINT)), 0) INTO m FROM paramedicos WHERE cedula ~ '^SC[0-9]{1,9}$';
+        SELECT CASE WHEN is_called THEN last_value ELSE 0 END INTO cur FROM seq_cedula_provisional;
+        IF m > cur THEN PERFORM setval('seq_cedula_provisional', m, true); END IF;
+        FOR r IN SELECT id FROM paramedicos WHERE cedula IS NULL OR cedula = '' ORDER BY creado, nombre LOOP
+          UPDATE paramedicos SET cedula = 'SC' || lpad(nextval('seq_cedula_provisional')::text, 4, '0') WHERE id = r.id;
+        END LOOP;
+      END $$`).catch(e => console.warn('[DB] cédulas provisionales:', e.message));
+
+    // Una cédula no puede repetirse (ignora puntos/espacios)
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_paramedicos_cedula_unica
       ON paramedicos (UPPER(regexp_replace(cedula, '[^0-9A-Za-z]', '', 'g')))
       WHERE cedula IS NOT NULL AND cedula <> ''`)

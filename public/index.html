@@ -142,10 +142,10 @@
           <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:18px;">
             <h3 style="margin:0 0 6px;font-size:15px;">⬇️ Descargar backup</h3>
             <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">
-              Descarga una copia completa de <code>campbell.db</code>. Guardala en un lugar seguro.
+              Descarga un archivo <code>.json</code> con todos los datos (personal, ambulancias, turnos, horas extra y empresas). Guardalo en un lugar seguro.
             </p>
             <button class="btn-primary" onclick="descargarBackup()" style="width:100%;">
-              💾 Descargar campbell.db
+              💾 Descargar backup (.json)
             </button>
           </div>
 
@@ -164,17 +164,12 @@
 
           <!-- Restaurar -->
           <div style="background:white;border:1px solid var(--border);border-radius:10px;padding:18px;">
-            <h3 style="margin:0 0 6px;font-size:15px;">⬆️ Restaurar backup</h3>
-            <p style="margin:0 0 14px;font-size:13px;color:var(--text-muted);">
-              Subí un archivo <code>.db</code> descargado previamente para restaurar todos los datos.
-              <strong style="color:#b71c1c;">Reemplaza la base de datos actual.</strong>
+            <h3 style="margin:0 0 6px;font-size:15px;">⬆️ Restaurar</h3>
+            <p style="margin:0;font-size:13px;color:var(--text-muted);">
+              La restauración no se hace desde esta pantalla. Para volver a un momento anterior usá
+              <strong>Backup &amp; Restore</strong> en la consola de Neon (recuperación por fecha y hora).
+              El archivo descargado sirve para consultar o reconstruir datos.
             </p>
-            <input type="file" id="backup-archivo" accept=".db"
-              style="display:block;width:100%;padding:8px;border:1px dashed var(--border);border-radius:6px;margin-bottom:10px;font-size:13px;">
-            <button class="btn-secondary" onclick="restaurarBackup()"
-              style="width:100%;border-color:#b71c1c;color:#b71c1c;">
-              ⚠️ Restaurar base de datos
-            </button>
           </div>
         </div>
 
@@ -303,14 +298,39 @@
         <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
       </div>
       <div class="form-group">
-        <label>Cédula</label>
+        <label>Cédula <small style="font-weight:400;color:var(--text-muted)">(identifica a la persona · si todavía no la tienen, dejala vacía: se asigna un código provisional SC0001, SC0002…)</small></label>
         <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890" oninput="verificarCedulaDuplicada()">
         <div id="paramedico-cedula-aviso" class="campo-aviso" style="display:none"></div>
+      </div>
+      <div id="unir-persona-bloque" style="display:none">
+        <button type="button" class="btn-link" onclick="abrirModalUnir()">🔗 ¿Esta persona quedó registrada dos veces? Unir con otro registro…</button>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="cerrarModal('modal-paramedico')">Cancelar</button>
       <button class="btn-primary" onclick="guardarParamedico()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UNIR PERSONAL -->
+<div id="modal-unir" class="modal">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2>🔗 Unir registros de la misma persona</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-unir')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="unir-explicacion" style="font-size:13.5px;line-height:1.5"></p>
+      <div class="form-group">
+        <label>Registro que se conserva</label>
+        <select id="unir-destino"></select>
+      </div>
+      <div id="unir-aviso" class="campo-aviso" role="alert" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-unir')">Cancelar</button>
+      <button class="btn-primary" onclick="ejecutarUnion()">Unir</button>
     </div>
   </div>
 </div>
@@ -368,7 +388,7 @@
     </div>
     <div class="modal-body">
       <div style="background:var(--verde-bg);border:1px solid var(--verde-borde);border-radius:8px;padding:12px;font-size:13px;color:var(--verde);">
-        <strong>Formato requerido:</strong> archivo <code>.xlsx</code> o <code>.xls</code> con dos columnas:<br><br>
+        <strong>Formato requerido:</strong> archivo <code>.xlsx</code> o <code>.xls</code>. Columnas base:<br><br>
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <tr style="background:var(--verde);color:white;">
             <th style="padding:5px 10px;text-align:left;">nombre</th>
@@ -383,7 +403,8 @@
             <td style="padding:5px 10px;border:1px solid var(--border);">P002</td>
           </tr>
         </table>
-        <div id="importar-nota" style="display:none;margin-top:8px;">Para <strong>ambulancias</strong> solo <code>nombre</code> es obligatoria. Opcionales: <code>codigo</code> (si falta se usa el nombre), <code>placa</code> e <code>ips</code> (C30, CCM o CCSO).</div>
+        <div id="importar-nota" style="margin-top:8px;"></div>
+        <div style="margin-top:8px;"><a id="importar-plantilla" href="#" download style="color:var(--verde);font-weight:600;">⬇ Descargar plantilla de Excel</a></div>
       </div>
       <div class="form-group">
         <label>Seleccionar archivo Excel</label>

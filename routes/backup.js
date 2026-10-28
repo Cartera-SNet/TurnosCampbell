@@ -2,16 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
 
-const BACKUP_KEY = process.env.BACKUP_KEY;
-
-function auth(req, res, next) {
-  if (!BACKUP_KEY)
-    return res.status(503).json({ error: 'Backup deshabilitado. Definí BACKUP_KEY en Railway.' });
-  const key = req.headers['x-backup-key'] || req.query.key;
-  if (key !== BACKUP_KEY)
-    return res.status(401).json({ error: 'Clave de backup incorrecta.' });
-  next();
-}
+const { requireAdmin: auth } = require('../lib/auth');
 
 // Helper: exportar todos los datos como objeto JSON
 async function exportarDatos() {
@@ -78,7 +69,7 @@ router.get('/info', auth, async (req, res) => {
       db.query('SELECT COUNT(*) AS n FROM extras'),
     ]);
     res.json({
-      motor: 'PostgreSQL (Neon)',
+      motor: 'PostgreSQL',
       registros: {
         paramedicos: parseInt(p.rows[0].n),
         ambulancias: parseInt(a.rows[0].n),

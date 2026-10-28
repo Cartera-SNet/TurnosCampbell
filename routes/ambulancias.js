@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
+const { requireAdmin } = require('../lib/auth');
 
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +17,7 @@ async function empresaValida(codigo) {
   return rows.length > 0;
 }
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const { nombre, horas_turno, placa, ips } = req.body;
   if (!nombre || !String(nombre).trim()) return res.status(400).json({ error: 'El nombre es requerido' });
   if (!(await empresaValida(ips))) return res.status(400).json({ error: 'Seleccioná la IPS registrada' });
@@ -37,7 +38,7 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAdmin, async (req, res) => {
   const { nombre, activa, horas_turno, placa, ips } = req.body;
   if (ips && !(await empresaValida(ips)))
     return res.status(400).json({ error: 'IPS no válida' });
@@ -52,7 +53,7 @@ router.put('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const { rowCount } = await db.query('DELETE FROM ambulancias WHERE id=$1', [req.params.id]);
     res.json({ deleted: rowCount });

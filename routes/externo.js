@@ -22,7 +22,7 @@ router.use(validarClaveExterna);
 router.get('/paramedicos', async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT id, nombre, codigo, cedula, activo FROM paramedicos ORDER BY codigo ASC'
+      `SELECT id, nombre, codigo, cedula, (cedula ~ '^SC[0-9]+$') AS cedula_provisional, rol, activo FROM paramedicos ORDER BY codigo ASC`
     );
     res.json(rows);
   } catch (e) {
@@ -34,8 +34,19 @@ router.get('/paramedicos', async (req, res) => {
 router.get('/ambulancias', async (req, res) => {
   try {
     const { rows } = await db.query(
-      'SELECT id, nombre, codigo, placa, activa, horas_turno FROM ambulancias ORDER BY codigo ASC'
+      `SELECT a.id, a.nombre, a.codigo, a.placa, a.ips, e.nombre AS empresa_nombre, a.activa, a.horas_turno
+       FROM ambulancias a LEFT JOIN empresas e ON e.codigo = a.ips ORDER BY a.codigo ASC`
     );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/externo/empresas
+router.get('/empresas', async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT codigo, nombre, activa FROM empresas ORDER BY codigo ASC');
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });

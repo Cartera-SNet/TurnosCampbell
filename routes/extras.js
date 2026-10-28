@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const db      = require('../db/database');
 const { randomUUID } = require('crypto');
+const { requireAdmin } = require('../lib/auth');
 
 router.get('/', async (req, res) => {
   try {
@@ -25,7 +26,7 @@ router.get('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const { fecha, paramedico_id, paramedico_nombre, horas, ambulancia_id, ambulancia_codigo, nota } = req.body;
   if (!fecha || !paramedico_id || !horas)
     return res.status(400).json({ error: 'fecha, paramedico_id y horas son requeridos' });
@@ -43,7 +44,7 @@ router.post('/', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const { rowCount } = await db.query('DELETE FROM extras WHERE id=$1', [req.params.id]);
     res.json({ deleted: rowCount });

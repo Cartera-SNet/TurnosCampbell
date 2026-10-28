@@ -5,6 +5,9 @@ const path    = require('path');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// Detrás del proxy de Railway: así req.ip es la IP real de quien consulta (para bloquear intentos de clave repetidos)
+app.set('trust proxy', 1);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -24,18 +27,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Sistema de Turnos - Fundación Campbell`);
   console.log(`Corriendo en puerto ${PORT}`);
-
-  // Migración: actualizar turnos noche de 13h a 11h
-  try {
-    const db = require('./db/database');
-    const { rowCount } = await db.query(
-      "UPDATE turnos SET horas = 11 WHERE turno = 'noche' AND horas = 13"
-    );
-    if (rowCount > 0) console.log(`[migración] ${rowCount} turno(s) noche actualizados a 11h`);
-  } catch (e) {
-    console.error('[migración] Error:', e.message);
-  }
 });

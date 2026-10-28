@@ -173,6 +173,8 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: white; }
 .form-group { display: flex; flex-direction: column; gap: 7px; }
+.btn-link { background: none; border: none; padding: 0; color: var(--verde); font-size: 12.5px; text-decoration: underline; cursor: pointer; text-align: left; }
+.btn-link:hover { color: var(--verde-claro, var(--verde)); }
 .campo-aviso { font-size: 12.5px; line-height: 1.4; color: #92400e; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 8px 10px; }
 .form-group label { font-size: 13.5px; font-weight: 600; color: var(--verde); }
 .form-group input, .form-group select { width: 100%; }

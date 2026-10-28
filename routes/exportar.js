@@ -2,6 +2,9 @@ const express = require('express');
 const router  = express.Router();
 const ExcelJS = require('exceljs');
 const db      = require('../db/database');
+const { nombresTripulacion } = require('../lib/tripulacion');
+const { requireAdmin } = require('../lib/auth');
+const { esCedulaProvisional } = require('../lib/cedula');
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -22,7 +25,7 @@ const VERDE_CLARO   = 'D6EAD8';
 const VERDE_HEADER  = '1B5E37';
 const BLANCO        = 'FFFFFF';
 
-router.get('/turnos', async (req, res) => {
+router.get('/turnos', requireAdmin, async (req, res) => {
   const { mes, anio } = req.query;
   if (!mes || !anio) return res.status(400).json({ error: 'mes y anio requeridos' });
 
@@ -38,7 +41,7 @@ router.get('/turnos', async (req, res) => {
   const turnos = await Promise.all(turnosRaw.map(async t => ({
     ...t,
     paramedicos: (await db.query(
-      'SELECT paramedico_id AS id, paramedico_nombre AS nombre FROM turno_paramedicos WHERE turno_id = $1', [t.id]
+      'SELECT paramedico_id AS id, paramedico_nombre AS nombre, funcion FROM turno_paramedicos WHERE turno_id = $1', [t.id]
     )).rows
   })));
 
@@ -67,7 +70,7 @@ router.get('/turnos', async (req, res) => {
   sub1.alignment = { horizontal: 'center', vertical: 'middle' };
   ws1.getRow(2).height = 20;
 
-  const headers1 = ['Fecha', 'Día', 'Ambulancia', 'Turno', 'Horario', 'Horas', 'Paramédicos'];
+  const headers1 = ['Fecha', 'Día', 'Ambulancia', 'Turno', 'Horario', 'Horas', 'Tripulación'];
   const row3 = ws1.addRow(headers1);
   row3.eachCell(cell => {
     cell.font      = { name: 'Calibri', size: 10, bold: true, color: { argb: BLANCO } };
@@ -119,7 +122,7 @@ router.get('/turnos', async (req, res) => {
       filaActual++;
     } else {
       turnosDia.forEach(t => {
-        const paraStr = t.paramedicos.map(p => p.nombre).join(' / ');
+        const paraStr = nombresTripulacion(t.paramedicos);
         const horario = t.turno === 'dia' ? '7:00 am – 6:00 pm' : '6:00 pm – 7:00 am';
         const bgRow   = t.turno === 'dia' ? 'FFFDE7' : 'EDE7F6';
         const row = ws1.addRow([
@@ -178,7 +181,7 @@ router.get('/turnos', async (req, res) => {
   sub2.alignment = { horizontal: 'center', vertical: 'middle' };
   ws2.getRow(2).height = 20;
 
-  const headers2 = ['Paramédico', 'Semana', 'Horas Semana', 'Límite', 'Exceso', 'Estado'];
+  const headers2 = ['Persona', 'Semana', 'Horas Semana', 'Límite', 'Exceso', 'Estado'];
   const hrow2 = ws2.addRow(headers2);
   hrow2.eachCell(cell => {
     cell.font      = { name: 'Calibri', size: 10, bold: true, color: { argb: BLANCO } };
@@ -257,7 +260,7 @@ router.get('/turnos', async (req, res) => {
   filaH++;
   ws2.mergeCells(`A${filaH}:F${filaH}`);
   const resCell = ws2.getCell(`A${filaH}`);
-  resCell.value = `RESUMEN MES: Total horas trabajadas: ${totalHorasMes} h   |   Semanas excedidas: ${totalExcesos}   |   Paramédicos: ${Object.keys(reporte).length}`;
+  resCell.value = `RESUMEN MES: Total horas trabajadas: ${totalHorasMes} h   |   Semanas excedidas: ${totalExcesos}   |   Personas: ${Object.keys(reporte).length}`;
   resCell.font  = { name: 'Calibri', size: 10, bold: true, color: { argb: BLANCO } };
   resCell.fill  = { type: 'pattern', pattern: 'solid', fgColor: { argb: VERDE_OSCURO } };
   resCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -272,11 +275,7 @@ router.get('/turnos', async (req, res) => {
 });
 
 // ── Exportar Personal APH (incluye cédulas → exige la clave en el servidor) ──
-router.get('/personal', async (req, res) => {
-  const BACKUP_KEY = process.env.BACKUP_KEY;
-  if (!BACKUP_KEY) return res.status(503).json({ error: 'Exportación deshabilitada. Falta BACKUP_KEY en el servidor.' });
-  if (req.headers['x-backup-key'] !== BACKUP_KEY) return res.status(401).json({ error: 'Clave incorrecta.' });
-
+router.get('/personal', requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.query(
       "SELECT nombre, codigo, rol, cedula, activo FROM paramedicos ORDER BY nombre ASC"
@@ -310,7 +309,7 @@ router.get('/personal', async (req, res) => {
     head.height = 22;
 
     rows.forEach((r, i) => {
-      const row = ws.addRow([i + 1, r.nombre, r.codigo, r.rol || 'Paramédico', r.cedula || 'Sin CC', r.activo === false ? 'Inactivo' : 'Activo']);
+      const row = ws.addRow([i + 1, r.nombre, r.codigo, r.rol || 'Paramédico', (esCedulaProvisional(r.cedula) ? r.cedula + ' (provisional)' : (r.cedula || 'Sin CC')), r.activo === false ? 'Inactivo' : 'Activo']);
       row.eachCell((c, col) => {
         c.font = { name: 'Calibri', size: 10 };
         c.alignment = { horizontal: col === 2 ? 'left' : 'center', vertical: 'middle' };

@@ -3,17 +3,17 @@ const router      = express.Router();
 const PDFDocument = require('pdfkit');
 const path        = require('path');
 const db          = require('../db/database');
+const { nombresTripulacion } = require('../lib/tripulacion');
+const { requireAdmin } = require('../lib/auth');
 
 const MESES    = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS     = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 const VERDE    = '#1B5E37';
 const VERDE_M  = '#2E7D52';
 const VERDE_CL = '#EAF4EE';
-const AMARILLO = '#FFF9C4';
 const ROJO_BG  = '#FDECEA';
 const ROJO     = '#C62828';
 const GRIS     = '#F5F5F5';
-const GRIS_T   = '#666666';
 
 function getSemana(fechaStr) {
   const d   = new Date(fechaStr + 'T12:00:00');
@@ -78,7 +78,7 @@ function filaTD(doc, vals, cols, y, rowH, bgColor) {
   return y + rowH;
 }
 
-router.get('/turnos', async (req, res) => {
+router.get('/turnos', requireAdmin, async (req, res) => {
   const { mes, anio } = req.query;
   if (!mes || !anio) return res.status(400).json({ error: 'mes y anio requeridos' });
 
@@ -96,7 +96,7 @@ router.get('/turnos', async (req, res) => {
   const turnos = await Promise.all(turnosRaw.map(async t => ({
     ...t,
     paramedicos: (await db.query(
-      'SELECT paramedico_id AS id, paramedico_nombre AS nombre FROM turno_paramedicos WHERE turno_id = $1', [t.id]
+      'SELECT paramedico_id AS id, paramedico_nombre AS nombre, funcion FROM turno_paramedicos WHERE turno_id = $1', [t.id]
     )).rows
   })));
 
@@ -133,7 +133,7 @@ router.get('/turnos', async (req, res) => {
     { x: ML+174,   w: 60,  label: 'Turno',       align: 'center' },
     { x: ML+234,   w: 70,  label: 'Horario',     align: 'center' },
     { x: ML+304,   w: 32,  label: 'Horas',       align: 'center' },
-    { x: ML+336,   w: bodyW - 336, label: 'Paramédicos', align: 'left' },
+    { x: ML+336,   w: bodyW - 336, label: 'Tripulación', align: 'left' },
   ];
 
   let y = filaTH(doc, colsMalla, bodyTop, 20);
@@ -187,7 +187,7 @@ router.get('/turnos', async (req, res) => {
         }
         const bg = t.turno === 'dia' ? '#FFFDE7' : '#EDE7F6';
         const horario = t.turno === 'dia' ? '7:00am - 6:00pm' : '6:00pm - 7:00am';
-        const paraStr = t.paramedicos.map(p => p.nombre).join(' / ');
+        const paraStr = nombresTripulacion(t.paramedicos);
         y = filaTD(doc,
           [fmtFecha(fecha), diaNom, t.ambulancia_codigo, t.turno === 'dia' ? 'DIA' : 'NOCHE', horario, `${t.horas}h`, paraStr],
           colsMalla, y, rowH, bg);
@@ -214,7 +214,7 @@ router.get('/turnos', async (req, res) => {
   pieAgina(doc, pageW, pageH, mesNombre, anio);
 
   const colsH = [
-    { x: ML,       w: 130, label: 'Paramédico',   align: 'left'   },
+    { x: ML,       w: 130, label: 'Persona',      align: 'left'   },
     { x: ML+130,   w: 110, label: 'Semana',       align: 'center' },
     { x: ML+240,   w: 70,  label: 'Horas Semana', align: 'center' },
     { x: ML+310,   w: 55,  label: 'Límite',       align: 'center' },
@@ -292,7 +292,7 @@ router.get('/turnos', async (req, res) => {
   drawRect(doc, ML, yH, bodyW, 22, VERDE);
   doc.fillColor('white').font('Helvetica-Bold').fontSize(9)
      .text(
-       `RESUMEN: ${pmOrdenados.length} paramédicos   |   Total horas trabajadas: ${totalHorasMes} h   |   Semanas excedidas: ${totalExcesos}   |   Límite: ${limite} h/semana`,
+       `RESUMEN: ${pmOrdenados.length} personas   |   Total horas trabajadas: ${totalHorasMes} h   |   Semanas excedidas: ${totalExcesos}   |   Límite: ${limite} h/semana`,
        ML + 8, yH + 7, { width: bodyW - 16, align: 'left' }
      );
 

@@ -108,7 +108,7 @@ router.post('/', async (req, res) => {
   if (!['dia', 'noche'].includes(turno))
     return res.status(400).json({ error: 'Turno debe ser dia o noche' });
   if (paramedicos.length > 3)
-    return res.status(400).json({ error: 'Máximo 3 paramédicos por turno' });
+    return res.status(400).json({ error: 'La tripulación es de máximo 3 personas (conductor incluido).' });
 
   const semana = getSemana(fecha);
   const key    = `${fecha}_${ambulancia_id}_${turno}`;

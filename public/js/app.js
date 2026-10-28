@@ -7,6 +7,19 @@ let _claveTimer = null;
 
 let _callbackPendiente = null;
 
+// Las operaciones de administrador (personal, ambulancias, horas extra, importar, exportar) las verifica el SERVIDOR:
+// este envoltorio agrega la clave (en una cabecera, nunca en la dirección) y avisa si venció o es incorrecta.
+async function fetchAdmin(url, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  if (_claveAdmin) headers['x-backup-key'] = _claveAdmin;
+  const res = await fetch(url, { ...opts, headers });
+  if (res.status === 401) {
+    _claveVerificada = false; _claveAdmin = ''; clearTimeout(_claveTimer);
+    toast('La sesión de administrador venció o la clave no es válida. Volvé a ingresarla.', 'error', 6000);
+  }
+  return res;
+}
+
 function verificarClaveAccion(callback) {
   if (_claveVerificada) { callback(); return; }
   _callbackPendiente = callback;
@@ -55,6 +68,8 @@ async function confirmarClave() {
       clearTimeout(_claveTimer);
       _claveTimer = setTimeout(() => { _claveVerificada = false; _claveAdmin = ''; }, 30 * 60 * 1000);
       document.getElementById('modal-clave').classList.remove('open');
+      try { await cargarDatos(); } catch (e) { /* se sigue con lo que ya estaba cargado */ }
+      if (document.getElementById('page-paramedicos')?.classList.contains('active')) renderParamedicos();
       if (_callbackPendiente) { _callbackPendiente(); _callbackPendiente = null; }
     } else {
       document.getElementById('clave-error').style.display = 'block';
@@ -91,7 +106,6 @@ function fmtHoras(n) {
 // ============================================================
 // ESTADO GLOBAL
 // ============================================================
-const API = '';
 let paramedicos = [];
 let ambulancias = [];
 let empresas = [];   // catálogo de empresas / IPS (viene de la base de datos)
@@ -163,52 +177,45 @@ function poblarSelectores() {
 // ============================================================
 // EXPORTAR EXCEL
 // ============================================================
-async function exportarPersonal() {
+// Descarga un archivo que exige la clave de administrador (viaja en una cabecera; la dirección no lleva la clave)
+function descargarProtegido(url, nombreArchivo, aviso) {
   verificarClaveAccion(async () => {
     try {
-      toast('Generando Excel de Personal APH…', 'success');
-      const res = await fetch('/api/exportar/personal', { headers: { 'x-backup-key': _claveAdmin } });
+      toast(aviso, 'success');
+      const res = await fetchAdmin(url);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        toast(err.error || 'No se pudo exportar', 'error');
+        toast(err.error || 'No se pudo generar el archivo', 'error');
         return;
       }
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(await res.blob());
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `Personal_APH_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.href = blobUrl;
+      a.download = nombreArchivo;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(blobUrl);
     } catch (e) {
       toast('Error: ' + e.message, 'error');
     }
   });
 }
-
-function exportarExcel() {
-  verificarClaveAccion(() => {
-    const mes  = document.getElementById('malla-mes').value;
-    const anio = document.getElementById('malla-anio').value;
-    toast('Generando Excel, espera un momento...', 'success');
-    window.location.href = `/api/exportar/turnos?mes=${mes}&anio=${anio}`;
-  });
+function exportarPersonal() {
+  descargarProtegido('/api/exportar/personal', `Personal_APH_${fechaLocalISO()}.xlsx`, 'Generando Excel de Personal APH…');
 }
-
+function exportarExcel() {
+  const mes = document.getElementById('malla-mes').value, anio = document.getElementById('malla-anio').value;
+  descargarProtegido(`/api/exportar/turnos?mes=${mes}&anio=${anio}`, `Turnos_${MESES[mes - 1]}_${anio}.xlsx`, 'Generando Excel, espera un momento...');
+}
 function exportarPDF() {
-  verificarClaveAccion(() => {
-    const mes  = document.getElementById('malla-mes').value;
-    const anio = document.getElementById('malla-anio').value;
-    toast('Generando PDF, espera un momento...', 'success');
-    window.location.href = `/api/pdf/turnos?mes=${mes}&anio=${anio}`;
-  });
+  const mes = document.getElementById('malla-mes').value, anio = document.getElementById('malla-anio').value;
+  descargarProtegido(`/api/pdf/turnos?mes=${mes}&anio=${anio}`, `Turnos_${MESES[mes - 1]}_${anio}.pdf`, 'Generando PDF, espera un momento...');
 }
 
 async function cargarDatos() {
   [paramedicos, ambulancias, empresas] = await Promise.all([
-    fetch('/api/paramedicos').then(r => r.json()),
+    fetchAdmin('/api/paramedicos').then(r => r.json()),
     fetch('/api/ambulancias').then(r => r.json()),
     fetch('/api/empresas').then(r => r.json()).catch(() => [])
   ]);
@@ -305,8 +312,9 @@ async function cargarMalla() {
   let html = `
     <div class="leyenda">
       <span><strong>${MESES[mes-1]} ${anio}</strong></span>
-      <span class="leyenda-item"><span class="turno-chip turno-dia">☀️ Día</span> 11h</span>
-      <span class="leyenda-item"><span class="turno-chip turno-noche">🌙 Noche</span> 11h</span>
+      <span class="leyenda-item"><span class="turno-chip turno-dia">☀️ Día</span></span>
+      <span class="leyenda-item"><span class="turno-chip turno-noche">🌙 Noche</span></span>
+      <span style="color:#6b7280;font-size:12px">Horas según ambulancia</span>
       <span style="color:#6b7280;font-size:12px">Límite semanal: ${limiteSemanal}h</span>
     </div>
     <div class="malla-table-wrapper">
@@ -324,7 +332,7 @@ async function cargarMalla() {
         <th style="text-align:left;padding-left:10px">Fecha</th>
         <th style="text-align:left">Ambulancia</th>
         <th style="text-align:center">Turno</th>
-        <th style="text-align:left">Paramédicos</th>
+        <th style="text-align:left">Tripulación</th>
         <th style="text-align:center">Acciones</th>
       </tr></thead>
       <tbody>
@@ -356,7 +364,6 @@ async function cargarMalla() {
         <td><button class="btn-icon" style="font-size:12px;padding:4px 8px;width:auto" onclick="abrirModalTurno('${fecha}')">+</button></td>
       </tr>`;
     } else {
-      const totalFilas = data.turnos.length + data.extras.length;
       const diaNum = parseInt(fecha.split('-')[2]);
       const borderTop = '2px solid #e5e7eb';
 
@@ -599,7 +606,8 @@ async function eliminarTurno(id) {
 async function eliminarExtra(id) {
   confirmarAccion('¿Eliminar este registro extra?', () => {
     verificarClaveAccion(async () => {
-      await fetch('/api/extras/' + id, { method: 'DELETE' });
+      const res = await fetchAdmin('/api/extras/' + id, { method: 'DELETE' });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); toast(err.error || 'No se pudo eliminar', 'error', 6000); return; }
       toast('Extra eliminado');
       cargarMalla();
     });
@@ -649,7 +657,7 @@ async function guardarExtra() {
     toast('Fecha, paramédico y horas son requeridos', 'error'); return;
   }
 
-  const res = await fetch('/api/extras', {
+  const res = await fetchAdmin('/api/extras', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ fecha, paramedico_id, paramedico_nombre, horas, ambulancia_id, ambulancia_codigo, nota })
@@ -698,7 +706,7 @@ function renderHoras() {
 
   let html = `
     <div class="resumen-mes">
-      <div class="resumen-stat"><div class="valor">${reporte.length}</div><div class="etiqueta">Paramédicos activos</div></div>
+      <div class="resumen-stat"><div class="valor">${reporte.length}</div><div class="etiqueta">Personas con horas</div></div>
       <div class="resumen-stat"><div class="valor">${fmtHoras(totalHoras)}</div><div class="etiqueta">Horas totales mes</div></div>
       <div class="resumen-stat"><div class="valor" style="color:${conAlerta > 0 ? '#e02424' : '#057a55'}">${conAlerta}</div><div class="etiqueta">Con alertas</div></div>
       <div class="resumen-stat"><div class="valor" style="color:#6b7280">${limiteSemanal}h</div><div class="etiqueta">Límite semanal</div></div>
@@ -723,7 +731,7 @@ function renderHoras() {
       <div class="horas-table-wrapper">
       <table class="horas-table">
         <thead><tr>
-          <th>Paramédico</th>
+          <th>Persona</th>
           <th>Total Mes</th>
           <th>Detalle Semanal</th>
           <th>Estado</th>
@@ -765,7 +773,7 @@ function renderHoras() {
       <div class="horas-table-wrapper">
       <table class="horas-table">
         <thead><tr>
-          <th>Paramédico</th>
+          <th>Persona</th>
           <th style="text-align:center">Horas Mes</th>
           <th>Progreso</th>
           <th style="text-align:center">Semanas</th>
@@ -831,7 +839,7 @@ function verificarCedulaDuplicada() {
   const aviso = document.getElementById('paramedico-cedula-aviso');
   const idActual = document.getElementById('paramedico-id').value;
   const norm = normalizarCedula(document.getElementById('paramedico-cedula').value);
-  const dup = norm ? paramedicos.find(p => p.id !== idActual && normalizarCedula(p.cedula) === norm) : null;
+  const dup = norm.length >= 5 ? paramedicos.find(p => p.id !== idActual && !String(p.cedula || '').includes('•') && normalizarCedula(p.cedula) === norm) : null;
   if (dup) {
     aviso.textContent = `⚠️ Esta cédula ya está registrada a nombre de ${dup.nombre} (${dup.codigo}). No se puede registrar a la misma persona dos veces.`;
     aviso.style.display = 'block';
@@ -841,6 +849,14 @@ function verificarCedulaDuplicada() {
   return dup || null;
 }
 
+function editarParamedico(id) {
+  verificarClaveAccion(async () => {
+    await cargarDatos();
+    const p = paramedicos.find(x => x.id === id);
+    if (p) abrirModalParamedico(p);
+  });
+}
+
 function abrirModalParamedico(pm = null) {
   document.getElementById('modal-paramedico-title').textContent = pm ? 'Editar Personal' : 'Nuevo Personal';
   document.getElementById('paramedico-id').value = pm?.id || '';
@@ -848,6 +864,7 @@ function abrirModalParamedico(pm = null) {
   document.getElementById('paramedico-codigo').value = pm?.codigo || (pm ? '' : siguienteCodigoParamedico());
   document.getElementById('paramedico-cedula').value = pm?.cedula || '';
   document.getElementById('paramedico-rol').value = pm?.rol || 'Paramédico';
+  document.getElementById('unir-persona-bloque').style.display = pm ? 'block' : 'none';
   verificarCedulaDuplicada();
   document.getElementById('modal-paramedico').classList.add('open');
   setTimeout(() => document.getElementById('paramedico-nombre').focus(), 100);
@@ -865,35 +882,92 @@ async function guardarParamedico() {
   const rol = document.getElementById('paramedico-rol').value;
 
   if (!nombre || !codigo) { toast('Nombre y código son requeridos', 'error'); return; }
+  if (cedula && (normalizarCedula(cedula).length < 5 || normalizarCedula(cedula).length > 15)) { toast('La cédula debe tener entre 5 y 15 números o letras (o dejala vacía para asignar un código provisional)', 'error'); return; }
   if (verificarCedulaDuplicada()) { toast('Esa cédula ya está registrada. Revisá el aviso en el formulario.', 'error'); return; }
 
   const url = id ? `/api/paramedicos/${id}` : '/api/paramedicos';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, cedula, rol, activo: true }) });
+  const res = await fetchAdmin(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, codigo, cedula, rol, activo: true }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
-  toast(id ? 'Personal actualizado' : 'Personal creado');
+  const prov = /^SC\d+$/.test(data.cedula || '');
+  toast(prov ? `Personal creado con cédula provisional ${data.cedula}` : (id ? 'Personal actualizado' : 'Personal creado'), 'success', prov ? 6000 : 3000);
   cerrarModal('modal-paramedico');
   await cargarDatos();
   renderParamedicos();
 }
 
 async function eliminarParamedico(id) {
-  confirmarAccion('¿Eliminar este paramédico? También se quitará de los turnos donde ya estaba asignado, incluyendo turnos pasados.', () => {
+  const p = paramedicos.find(x => x.id === id);
+  const nombre = p ? p.nombre : 'esta persona';
+  let uso = { turnos: 0, extras: 0 };
+  try { uso = await fetch(`/api/paramedicos/${id}/uso`).then(r => r.json()); } catch (e) { /* si falla, sigue con el aviso general */ }
+  if (uso.extras > 0) {
+    toast(`No se puede eliminar: ${nombre} tiene ${uso.extras} registro(s) de horas extra. Eliminá primero esas horas extra o, si es un registro duplicado, usá Editar → "Unir con otro registro".`, 'error', 9000);
+    return;
+  }
+  const mensaje = uso.turnos > 0
+    ? `${nombre} tiene ${uso.turnos} turno(s) registrados. Si la eliminás, esas horas desaparecen de los reportes (también de meses pasados). Si es la misma persona que otro registro, cancelá y usá Editar → "Unir con otro registro".`
+    : `¿Eliminar a ${nombre}? No tiene turnos ni horas registradas.`;
+  confirmarAccion(mensaje, () => {
     verificarClaveAccion(async () => {
       try {
-        const res = await fetch('/api/paramedicos/' + id, { method: 'DELETE' });
+        const res = await fetchAdmin('/api/paramedicos/' + id, { method: 'DELETE' });
         const data = await res.json();
         if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error', 9000); return; }
-        toast('Paramédico eliminado');
+        toast('Personal eliminado');
         await cargarDatos();
         renderParamedicos();
       } catch (e) {
         toast('Error: ' + e.message, 'error');
       }
     });
-  });
+  }, { titulo: 'Eliminar personal' });
+}
+
+// ── Unir dos registros de la misma persona ──
+let _unirOrigenId = '';
+
+function abrirModalUnir() {
+  const id = document.getElementById('paramedico-id').value;
+  const p = paramedicos.find(x => x.id === id);
+  if (!p) return;
+  _unirOrigenId = id;
+  document.getElementById('unir-explicacion').innerHTML =
+    `Se pasarán <strong>todos los turnos y horas extra de ${p.nombre}</strong> al registro que elijas y después se eliminará este. Usalo cuando una misma persona quedó registrada dos veces (por ejemplo con el nombre escrito distinto).`;
+  document.getElementById('unir-destino').innerHTML = '<option value="">— Seleccionar —</option>' +
+    paramedicos.filter(x => x.id !== id).map(x => `<option value="${x.id}">${x.nombre} (${x.codigo})${x.cedula ? ' · CC ' + (_claveVerificada ? x.cedula : '••••' + String(x.cedula).slice(-4)) : ' · sin cédula'}</option>`).join('');
+  document.getElementById('unir-aviso').style.display = 'none';
+  cerrarModal('modal-paramedico');
+  document.getElementById('modal-unir').classList.add('open');
+}
+
+function ejecutarUnion() {
+  const aviso = document.getElementById('unir-aviso');
+  const destinoId = document.getElementById('unir-destino').value;
+  const origen = paramedicos.find(x => x.id === _unirOrigenId);
+  const destino = paramedicos.find(x => x.id === destinoId);
+  if (!destino) { aviso.textContent = '⚠️ Elegí el registro que se conserva.'; aviso.style.display = 'block'; return; }
+  confirmarAccion(
+    `${origen.nombre} se unirá con ${destino.nombre}: todos sus turnos y horas extra pasan a ${destino.nombre} y el registro de ${origen.nombre} se elimina.`,
+    () => verificarClaveAccion(async () => {
+      try {
+        const res = await fetchAdmin(`/api/paramedicos/${_unirOrigenId}/unir`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ destino_id: destinoId }) });
+        const data = await res.json();
+        if (!res.ok) { aviso.textContent = '⚠️ ' + (data.error || 'No se pudo unir'); aviso.style.display = 'block'; return; }
+        cerrarModal('modal-unir');
+        const total = data.turnos_movidos + data.turnos_en_ambos;
+        toast(`Unido: ${total} turno(s) y ${data.extras_movidos} hora(s) extra ahora están en ${data.destino}` + (data.dobles_asignados ? `. Revisá: quedó en ${data.dobles_asignados} turno(s) en dos ambulancias a la vez` : ''), data.dobles_asignados ? 'error' : 'success', 8000);
+        await cargarDatos();
+        renderParamedicos();
+        cargarMalla();
+      } catch (e) {
+        aviso.textContent = '⚠️ Error: ' + e.message; aviso.style.display = 'block';
+      }
+    }),
+    { titulo: 'Unir registros', textoBoton: 'Sí, unir' }
+  );
 }
 
 function revelarCedulas() {
@@ -925,9 +999,9 @@ function renderParamedicos() {
         </div>
         <span class="card-code">${p.codigo}</span>
       </div>
-      <div class="card-subtext">${p.rol || 'Paramédico'}${p.cedula ? ` · 🪪 CC: ${_claveVerificada ? p.cedula : '••••' + String(p.cedula).slice(-4)}` : ''}</div>
+      <div class="card-subtext">${p.rol || 'Paramédico'}${p.cedula ? (/^SC\d+$/.test(p.cedula) ? ` · ⚠ Cédula provisional ${p.cedula}` : ` · 🪪 CC: ${_claveVerificada ? p.cedula : '••••' + String(p.cedula).slice(-4)}`) : ' · ⚠ Sin cédula'}</div>
       <div class="card-actions">
-        <button class="btn-secondary" onclick="abrirModalParamedico(${JSON.stringify(p).replace(/"/g,'&quot;')})">Editar</button>
+        <button class="btn-secondary" onclick="editarParamedico('${p.id}')">Editar</button>
         <button class="btn-danger" onclick="eliminarParamedico('${p.id}')">Eliminar</button>
       </div>
     </div>`).join('')}</div>`;
@@ -969,7 +1043,7 @@ async function guardarAmbulancia() {
 
   const url = id ? `/api/ambulancias/${id}` : '/api/ambulancias';
   const method = id ? 'PUT' : 'POST';
-  const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, placa, ips, horas_turno, activa }) });
+  const res = await fetchAdmin(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre, placa, ips, horas_turno, activa }) });
   const data = await res.json();
   if (data.error) { toast(data.error, 'error'); return; }
 
@@ -982,7 +1056,8 @@ async function guardarAmbulancia() {
 async function eliminarAmbulancia(id) {
   confirmarAccion('¿Eliminar esta ambulancia?', () => {
     verificarClaveAccion(async () => {
-      await fetch('/api/ambulancias/' + id, { method: 'DELETE' });
+      const res = await fetchAdmin('/api/ambulancias/' + id, { method: 'DELETE' });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); toast(err.error || 'No se pudo eliminar la ambulancia', 'error', 6000); return; }
       toast('Ambulancia eliminada');
       await cargarDatos();
       renderAmbulanciasList();
@@ -998,7 +1073,7 @@ async function toggleAmbulanciaActiva(id, nuevaActiva) {
   const a = ambulancias.find(x => x.id === id);
   if (!a) return;
   try {
-    const res = await fetch(`/api/ambulancias/${id}`, {
+    const res = await fetchAdmin(`/api/ambulancias/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nombre: a.nombre, codigo: a.codigo, horas_turno: a.horas_turno, activa: nuevaActiva })
@@ -1073,8 +1148,10 @@ function abrirModalImportar(tipo) {
   const label = tipo === 'paramedicos' ? 'Paramédicos' : 'Ambulancias';
   document.getElementById('modal-importar-title').textContent = `📥 Importar ${label} desde Excel`;
   document.getElementById('importar-archivo').value = '';
-  const nota = document.getElementById('importar-nota');
-  nota.style.display = tipo === 'ambulancias' ? 'block' : 'none';
+  document.getElementById('importar-nota').innerHTML = tipo === 'ambulancias'
+    ? 'Para <strong>ambulancias</strong> solo <code>nombre</code> es obligatoria. Opcionales: <code>codigo</code> (si falta se usa el nombre), <code>placa</code> e <code>ips</code> (C30, CCM o CCSO).'
+    : 'Para <strong>personal</strong> agregá la columna <code>cedula</code> (no puede repetirse). Si una fila no la trae, se le asigna un código provisional consecutivo (SC0001…).';
+  document.getElementById('importar-plantilla').href = `/api/importar/plantilla/${tipo}`;
   document.getElementById('importar-resultado').style.display = 'none';
   document.getElementById('importar-resultado').innerHTML = '';
   document.getElementById('btn-importar-confirm').disabled = false;
@@ -1098,7 +1175,7 @@ async function ejecutarImportacion() {
   formData.append('archivo', fileInput.files[0]);
 
   try {
-    const res  = await fetch(`/api/importar/${_importarTipo}`, { method: 'POST', body: formData });
+    const res  = await fetchAdmin(`/api/importar/${_importarTipo}`, { method: 'POST', body: formData });
     const data = await res.json();
 
     const resDiv = document.getElementById('importar-resultado');
@@ -1119,6 +1196,7 @@ async function ejecutarImportacion() {
         <div style="font-weight:700;color:#1B5E37;margin-bottom:6px;">✅ Importación completada</div>
         <div>✔ Insertados: <strong>${data.insertados}</strong></div>
         <div>⊘ Omitidos (duplicados o vacíos): <strong>${data.omitidos}</strong></div>
+        ${data.provisionales ? `<div>🪪 Con cédula provisional (sin cédula en el archivo): <strong>${data.provisionales}</strong></div>` : ''}
         ${hayErrores ? `<div style="margin-top:8px;font-size:12px;color:#666;">
           <strong>Detalle de omitidos:</strong><br>
           ${data.errores.slice(0,10).map(e => `• ${e}`).join('<br>')}
@@ -1181,7 +1259,7 @@ async function verificarBackupKey() {
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <tr><td style="padding:5px 0;color:var(--text-muted);">Motor</td><td><strong>${data.motor}</strong></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);" colspan="2"><hr style="border:none;border-top:1px solid var(--border);margin:6px 0;"></td></tr>
-        <tr><td style="padding:5px 0;color:var(--text-muted);">Paramédicos</td><td><strong>${r.paramedicos}</strong></td></tr>
+        <tr><td style="padding:5px 0;color:var(--text-muted);">Personal</td><td><strong>${r.paramedicos}</strong></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);">Ambulancias</td><td><strong>${r.ambulancias}</strong></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);">Turnos</td><td><strong>${r.turnos}</strong></td></tr>
         <tr><td style="padding:5px 0;color:var(--text-muted);">Horas extra</td><td><strong>${r.extras}</strong></td></tr>
@@ -1212,41 +1290,26 @@ async function enviarBackupEmail() {
   }
 }
 
-function descargarBackup() {
+async function descargarBackup() {
   const key = backupKey();
   if (!key) { toast('Ingresá la clave de backup primero', 'error'); return; }
-  const fecha = new Date().toISOString().slice(0, 10);
-  const a = document.createElement('a');
-  a.href = `/api/backup/descargar?key=${encodeURIComponent(key)}`;
-  a.download = `campbell_backup_${fecha}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  toast('Descarga iniciada');
+  try {
+    const res = await fetch('/api/backup/descargar', { headers: { 'x-backup-key': key } });
+    if (!res.ok) { const err = await res.json().catch(() => ({})); toast(err.error || 'No se pudo descargar el backup', 'error'); return; }
+    const url = URL.createObjectURL(await res.blob());
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `campbell_backup_${fechaLocalISO()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast('Descarga iniciada');
+  } catch (e) {
+    toast('Error: ' + e.message, 'error');
+  }
 }
 
-async function restaurarBackup() {
-  const archivo = document.getElementById('backup-archivo')?.files[0];
-  if (!archivo) { toast('Seleccioná un archivo primero', 'error'); return; }
-  confirmarAccion(
-    'Esto reemplazará TODOS los datos actuales con el backup seleccionado. Esta acción no se puede deshacer.',
-    async () => {
-      const key = backupKey();
-      const form = new FormData();
-      form.append('archivo', archivo);
-      try {
-        const res  = await fetch('/api/backup/restaurar', { method: 'POST', headers: { 'x-backup-key': key }, body: form });
-        const data = await res.json();
-        if (!res.ok) { toast('❌ Error al restaurar: ' + data.error, 'error'); return; }
-        toast('✅ Base de datos restaurada. Recargando…');
-        setTimeout(() => location.reload(), 2000);
-      } catch (e) {
-        toast('Error de conexión: ' + e.message, 'error');
-      }
-    },
-    { titulo: '⚠️ Restaurar base de datos', textoBoton: 'Sí, restaurar' }
-  );
-}
 // ═══════════════════════════════════════════════════════
 // BÚSQUEDA en Paramédicos y Ambulancias
 // ═══════════════════════════════════════════════════════
