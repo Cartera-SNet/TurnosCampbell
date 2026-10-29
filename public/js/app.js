@@ -109,6 +109,7 @@ function fmtHoras(n) {
 let paramedicos = [];
 let ambulancias = [];
 let empresas = [];   // catálogo de empresas / IPS (viene de la base de datos)
+let turnosMalla = [];
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const DIAS_SEMANA = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -293,7 +294,8 @@ async function cargarMalla() {
     fetch(`/api/extras?mes=${mes}&anio=${anio}`).then(r => r.json())
   ]);
 
-  if (turnos.error) { container.innerHTML = '<p style="color:red">Error al cargar</p>'; return; }
+  if (!Array.isArray(turnos)) { turnosMalla = []; container.innerHTML = '<p style="color:red">Error al cargar</p>'; return; }
+  turnosMalla = turnos;
 
   // Agrupar por fecha y ambulancia
   const porDia = {};
@@ -322,10 +324,10 @@ async function cargarMalla() {
       <colgroup>
         <col style="width:7%">
         <col style="width:8%">
-        <col style="width:20%">
         <col style="width:19%">
-        <col style="width:39%">
-        <col style="width:7%">
+        <col style="width:18%">
+        <col style="width:35%">
+        <col style="width:13%">
       </colgroup>
       <thead><tr>
         <th style="text-align:left;padding-left:10px">Día</th>
@@ -379,6 +381,9 @@ async function cargarMalla() {
 
         if (row.tipo === 'turno') {
           const t = row.data;
+          const movilEmpresa = t.empresa
+            ? `${t.ambulancia_codigo} - ${t.empresa}`
+            : t.ambulancia_codigo;
           const paraStr = [...t.paramedicos]
             .sort((a, b) => (a.funcion === 'Conductor') - (b.funcion === 'Conductor'))   // paramédico(s) primero, conductor al final
             .map(p => p.nombre.split(' ')[0] + (p.funcion === 'Conductor' ? ' (cond.)' : ''))
@@ -386,10 +391,13 @@ async function cargarMalla() {
           html += `<tr ${semAttr} style="${rowStyle}">
             <td style="font-weight:600;white-space:nowrap;border-top:${bt};color:${dayColor};padding-left:12px">${isFirst ? diaSemana : ''}</td>
             <td style="font-weight:600;border-top:${bt};color:${dayColor}">${isFirst ? diaNum : ''}</td>
-            <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-size:13px;font-weight:500">${t.ambulancia_codigo}</span></td>
+            <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><span style="font-size:13px;font-weight:500">${movilEmpresa}</span></td>
             <td style="border-top:${bt};text-align:center"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
             <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${paraStr}</td>
-            <td style="border-top:${bt};text-align:center"><button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')">✕</button></td>
+            <td class="turno-acciones" style="border-top:${bt};text-align:center">
+              <button class="btn-ver-turno" onclick="verTurno('${t.id}')" aria-label="Ver turno de ${formatFecha(t.fecha)}" title="Ver turno">👁️</button>
+              <button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')" aria-label="Eliminar turno" title="Eliminar turno">✕</button>
+            </td>
           </tr>`;
         } else {
           const e = row.data;
@@ -423,6 +431,55 @@ function getSemana(fechaStr) {
 function formatFecha(fechaStr) {
   const [y, m, d] = fechaStr.split('-');
   return `${d}/${m}/${y}`;
+}
+
+function verTurno(id) {
+  const turno = turnosMalla.find(t => t.id === id);
+  if (!turno) {
+    toast('No se encontró el turno. Actualiza la malla e inténtalo de nuevo.', 'error');
+    return;
+  }
+
+  const empresa = empresas.find(e => e.codigo === turno.empresa);
+  const valores = {
+    'vista-turno-fecha': formatFecha(turno.fecha),
+    'vista-turno-ambulancia': turno.ambulancia_codigo || 'No registrada',
+    'vista-turno-empresa': turno.empresa
+      ? `${turno.empresa}${empresa ? ` - ${empresa.nombre}` : ''}`
+      : 'No registrada',
+    'vista-turno-jornada': turno.turno === 'dia' ? '☀️ Día' : '🌙 Noche',
+    'vista-turno-horas': `${turno.horas} horas`,
+    'vista-turno-semana': turno.semana ? formatFecha(turno.semana) : 'No registrada'
+  };
+  Object.entries(valores).forEach(([idCampo, valor]) => {
+    document.getElementById(idCampo).textContent = valor;
+  });
+
+  const lista = document.getElementById('vista-turno-tripulacion');
+  lista.replaceChildren();
+  [...(turno.paramedicos || [])]
+    .sort((a, b) => (a.funcion === 'Conductor') - (b.funcion === 'Conductor'))
+    .forEach(persona => {
+      const item = document.createElement('li');
+      const nombre = document.createElement('strong');
+      nombre.textContent = persona.nombre || 'Nombre no registrado';
+      const funcion = document.createElement('span');
+      funcion.className = 'turno-detalle-funcion';
+      funcion.textContent = persona.funcion || 'Paramédico';
+      const firma = document.createElement('span');
+      firma.className = `turno-detalle-firma${persona.firma ? ' registrada' : ''}`;
+      firma.textContent = persona.firma ? 'Firma registrada' : 'Sin firma';
+      item.append(nombre, funcion, firma);
+      lista.appendChild(item);
+    });
+
+  if (!turno.paramedicos?.length) {
+    const item = document.createElement('li');
+    item.textContent = 'No hay tripulación registrada.';
+    lista.appendChild(item);
+  }
+
+  document.getElementById('modal-ver-turno').classList.add('open');
 }
 
 // ============================================================

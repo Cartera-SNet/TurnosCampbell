@@ -105,6 +105,21 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .turno-dia   { background: var(--dia-bg);   color: #7B5E00; border: 1px solid var(--dia-border); }
 .turno-noche { background: var(--noche-bg); color: #4A148C; border: 1px solid var(--noche-border); }
 .badge-extra { background: var(--extra-bg); color: #1B5E20; border: 1px solid var(--extra-border); }
+.turno-acciones { white-space: nowrap; }
+.btn-ver-turno { width: 30px; height: 30px; margin-right: 3px; border: 1px solid var(--verde-borde); border-radius: 5px; background: white; color: var(--verde); cursor: pointer; font-size: 15px; vertical-align: middle; }
+.btn-ver-turno:hover { background: var(--verde-bg); }
+.turno-detalle-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.turno-detalle-grid > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.turno-detalle-grid span { color: var(--text-muted); font-size: 12px; }
+.turno-detalle-grid strong { color: var(--text); font-size: 13px; overflow-wrap: anywhere; }
+.turno-tripulacion h3 { color: var(--verde); font-size: 14px; margin-bottom: 8px; }
+.turno-tripulacion ul { list-style: none; padding: 0; margin: 0; }
+.turno-tripulacion li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; border-top: 1px solid var(--border); }
+.turno-tripulacion li > strong { flex: 1; min-width: 130px; font-size: 13px; }
+.turno-detalle-funcion, .turno-detalle-firma { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.turno-detalle-funcion { color: #1B5E37; background: var(--verde-bg); }
+.turno-detalle-firma { color: #6b7280; background: #f3f4f6; }
+.turno-detalle-firma.registrada { color: #1B5E20; background: #E8F5E9; }
 
 /* ── HORAS ── */
 .horas-table-wrapper { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 10px rgba(27,94,55,.10); background: white; border: 1px solid var(--border); -webkit-overflow-scrolling: touch; }
@@ -223,6 +238,7 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 /* ════════════ MÓVIL ≤ 767px ════════════ */
 @media (max-width: 767px) {
   /* Ocultar nav desktop, mostrar hamburguesa */
+  .turno-detalle-grid { grid-template-columns: 1fr; }
   .nav-desktop { display: none; }
   .hamburger   { display: flex; }
   .mobile-menu { display: flex; }

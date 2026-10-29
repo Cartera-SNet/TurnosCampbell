@@ -234,6 +234,33 @@
   </div>
 </div>
 
+<!-- MODAL DETALLE TURNO -->
+<div id="modal-ver-turno" class="modal">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h2>👁️ Detalle del turno</h2>
+      <button class="modal-close" onclick="cerrarModal('modal-ver-turno')" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="turno-detalle-grid">
+        <div><span>Fecha</span><strong id="vista-turno-fecha"></strong></div>
+        <div><span>Ambulancia</span><strong id="vista-turno-ambulancia"></strong></div>
+        <div><span>Empresa</span><strong id="vista-turno-empresa"></strong></div>
+        <div><span>Jornada</span><strong id="vista-turno-jornada"></strong></div>
+        <div><span>Horas</span><strong id="vista-turno-horas"></strong></div>
+        <div><span>Semana</span><strong id="vista-turno-semana"></strong></div>
+      </div>
+      <div class="turno-tripulacion">
+        <h3>Tripulación guardada</h3>
+        <ul id="vista-turno-tripulacion"></ul>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="cerrarModal('modal-ver-turno')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL EXTRA -->
 <div id="modal-extra" class="modal">
   <div class="modal-content">
