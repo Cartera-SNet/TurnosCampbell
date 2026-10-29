@@ -31,7 +31,7 @@ sql/                 Scripts para DBeaver (no los ejecuta la app)
 ## Seguridad
 
 - La clave de administrador (`BACKUP_KEY`) la **verifica el servidor** en cada operación protegida; la pantalla la envía en la cabecera `x-backup-key` (nunca en la dirección). Se compara en tiempo constante y tras **10 intentos con clave equivocada** esa IP queda bloqueada 15 minutos.
-- **Exigen la clave:** crear/editar/eliminar/unir personal, crear/editar/eliminar ambulancias, crear/eliminar horas extra, importar Excel, exportar Excel y PDF de la malla, exportar Personal APH y todo `/api/backup`.
+- **Exigen la clave:** crear/editar/retirar personal, crear/editar/eliminar ambulancias, crear/eliminar horas extra, importar Excel, exportar Excel y PDF de la malla, exportar Personal APH y todo `/api/backup`.
 - **Cédulas:** `GET /api/paramedicos` las entrega enmascaradas (`••••1234`) salvo que la petición lleve la clave. Los códigos provisionales (`SC0001`) no se enmascaran.
 - **Abierto a propósito:** la malla (consultar, crear y borrar turnos, firmas) y las plantillas de importación, como se decidió. Cualquiera con la dirección puede modificar turnos.
 - **API externa** (`/api/externo`): clave propia (`API_EXTERNA_KEY`).
@@ -53,6 +53,111 @@ sql/                 Scripts para DBeaver (no los ejecuta la app)
 **Personal (identidad por cédula):**
 - La **cédula identifica a la persona y es única**. Se compara sin puntos, espacios ni guiones y se guarda normalizada (`1.042.460.556` → `1042460556`).
 - Quien **todavía no tiene cédula** recibe un **código provisional consecutivo** (`SC0001`, `SC0002`…) que se muestra como "⚠ Cédula provisional". Cuando se carga la cédula real, la reemplaza. Los códigos provisionales **no se reutilizan** (salen de una secuencia de la base de datos). La API externa los marca con `cedula_provisional: true`.
+- **"Eliminar" retira, no borra.** La persona desaparece de la lista y ya no se puede asignar a turnos ni a horas extra, pero queda en la base de datos (`activo = FALSE`, con la fecha en `retirado_el`) y **todo su historial se conserva**: sus turnos siguen en la malla de los meses en que trabajó y sus horas siguen en el Control de Horas, el Excel y el PDF de esos meses (sirve para liquidaciones). La pantalla solo pide confirmar ("¿Estás seguro de que quieres eliminar…?").
+- **Solo el administrador reactiva** a alguien, desde la base de datos (`sql/04_personal_retirado.sql`). Mientras esté retirada, su cédula y su código siguen ocupados: si alguien intenta registrarla de nuevo, el sistema lo impide y explica que figura como retirada, para no duplicarla ni perder su historial.
+- El Excel de *Personal APH* trae solo al personal activo; la API externa devuelve a todos con `activo` y `retirado_el`.
+- Un duplicado (la misma persona registrada dos veces) ya no se corrige desde la pantalla: se resuelve con SQL de administrador.
+- **Importar personal por Excel:** columnas `nombre` y `codigo` (y `cedula`, opcional). Hay una plantilla descargable en la propia ventana de importación.
+
+**Control de Horas:** suma por persona y por semana (lunes a domingo) los turnos y las horas extra y los compara con el límite semanal (**44 h** de enero a junio, **42 h** de julio a diciembre). El límite no impide asignar: solo genera alertas. En una semana que cruza de mes, cada mes suma solo sus propios días.
+
+## Base de datos
+
+`paramedicos` (personal: nombre, código, cédula única, rol, activo, retirado_el) · `ambulancias` (nombre, código, placa, IPS, horas por turno, activa) ·
+`empresas` (C30, CCM, CCSO) · `turnos` (fecha, turno, ambulancia, horas, empresa) ·
+`turno_paramedicos` (personas de cada turno, función Conductor/Paramédico, firma) · `extras` (horas extra).
+
+Las tablas y columnas se crean/actualizan solas al arrancar la app. `sql/01_verificar_esquema.sql` muestra qué existe y `sql/02_crear_lo_que_falta.sql` lo crea a mano si hiciera falta.
+
+## API
+
+| Método | Ruta |
+|---|---|
+| `GET` | `/api/paramedicos` |
+| `POST` | `/api/paramedicos` |
+| `PUT` | `/api/paramedicos/:id` |
+| `DELETE` | `/api/paramedicos/:id` |
+| `GET` | `/api/ambulancias` |
+| `POST` | `/api/ambulancias` |
+| `PUT` | `/api/ambulancias/:id` |
+| `DELETE` | `/api/ambulancias/:id` |
+| `GET` | `/api/empresas` |
+| `GET` | `/api/turnos` |
+| `GET` | `/api/turnos/ocupados` |
+| `POST` | `/api/turnos` |
+| `DELETE` | `/api/turnos/:id` |
+| `PUT` | `/api/turnos/:turnoId/firma/:paramedicoId` |
+| `GET` | `/api/turnos/reporte/horas` |
+| `GET` | `/api/extras` |
+| `POST` | `/api/extras` |
+| `DELETE` | `/api/extras/:id` |
+| `GET` | `/api/exportar/turnos` |
+| `GET` | `/api/exportar/personal` |
+| `GET` | `/api/pdf/turnos` |
+| `POST` | `/api/importar/paramedicos` |
+| `POST` | `/api/importar/ambulancias` |
+| `GET` | `/api/importar/plantilla/:tipo` |
+| `GET` | `/api/backup/info` |
+| `GET` | `/api/backup/descargar` |
+| `POST` | `/api/backup/enviar-email` |
+| `GET` | `/api/externo/paramedicos` |
+| `GET` | `/api/externo/ambulancias` |
+| `GET` | `/api/externo/empresas` |
+
+La API externa los marca con `cedula_provisional: true`.
+- **"Eliminar" retira, no borra.** La persona desaparece de la lista y ya no se puede asignar a turnos ni a horas extra, pero queda en la base de datos (`activo = FALSE`, con la fecha en `retirado_el`) y **todo su historial se conserva**: sus turnos siguen en la malla de los meses en que trabajó y sus horas siguen en el Control de Horas, el Excel y el PDF de esos meses (sirve para liquidaciones). La pantalla solo pide confirmar ("¿Estás seguro de que quieres eliminar…?").
+- **Solo el administrador reactiva** a alguien, desde la base de datos (`sql/04_personal_retirado.sql`). Mientras esté retirada, su cédula y su código siguen ocupados: si alguien intenta registrarla de nuevo, el sistema lo impide y explica que figura como retirada, para no duplicarla ni perder su historial.
+- El Excel de *Personal APH* trae solo al personal activo; la API externa devuelve a todos con `activo` y `retirado_el`.
+- Un duplicado (la misma persona registrada dos veces) ya no se corrige desde la pantalla: se resuelve con SQL de administrador.
+- **Importar personal por Excel:** columnas `nombre` y `codigo` (y `cedula`, opcional). Hay una plantilla descargable en la propia ventana de importación.
+
+**Control de Horas:** suma por persona y por semana (lunes a domingo) los turnos y las horas extra y los compara con el límite semanal (**44 h** de enero a junio, **42 h** de julio a diciembre). El límite no impide asignar: solo genera alertas. En una semana que cruza de mes, cada mes suma solo sus propios días.
+
+## Base de datos
+
+`paramedicos` (personal: nombre, código, cédula única, rol, activo, retirado_el) · `ambulancias` (nombre, código, placa, IPS, horas por turno, activa) ·
+`empresas` (C30, CCM, CCSO) · `turnos` (fecha, turno, ambulancia, horas, empresa) ·
+`turno_paramedicos` (personas de cada turno, función Conductor/Paramédico, firma) · `extras` (horas extra).
+
+Las tablas y columnas se crean/actualizan solas al arrancar la app. `sql/01_verificar_esquema.sql` muestra qué existe y `sql/02_crear_lo_que_falta.sql` lo crea a mano si hiciera falta.
+
+## API
+
+| Método | Ruta |
+|---|---|
+| `GET` | `/api/paramedicos` |
+| `POST` | `/api/paramedicos` |
+| `PUT` | `/api/paramedicos/:id` |
+| `GET` | `/api/paramedicos/:id/uso` |
+| `DELETE` | `/api/paramedicos/:id` |
+| `GET` | `/api/ambulancias` |
+| `POST` | `/api/ambulancias` |
+| `PUT` | `/api/ambulancias/:id` |
+| `DELETE` | `/api/ambulancias/:id` |
+| `GET` | `/api/empresas` |
+| `GET` | `/api/turnos` |
+| `GET` | `/api/turnos/ocupados` |
+| `POST` | `/api/turnos` |
+| `DELETE` | `/api/turnos/:id` |
+| `PUT` | `/api/turnos/:turnoId/firma/:paramedicoId` |
+| `GET` | `/api/turnos/reporte/horas` |
+| `GET` | `/api/extras` |
+| `POST` | `/api/extras` |
+| `DELETE` | `/api/extras/:id` |
+| `GET` | `/api/exportar/turnos` |
+| `GET` | `/api/exportar/personal` |
+| `GET` | `/api/pdf/turnos` |
+| `POST` | `/api/importar/paramedicos` |
+| `POST` | `/api/importar/ambulancias` |
+| `GET` | `/api/importar/plantilla/:tipo` |
+| `GET` | `/api/backup/info` |
+| `GET` | `/api/backup/descargar` |
+| `POST` | `/api/backup/enviar-email` |
+| `GET` | `/api/externo/paramedicos` |
+| `GET` | `/api/externo/ambulancias` |
+| `GET` | `/api/externo/empresas` |
+
+La API externa los marca con `cedula_provisional: true`.
 - Si una misma persona quedó registrada dos veces, se corrige con **Unir** (Editar → *Unir con otro registro*): pasa todos sus turnos y horas extra al registro que se conserva (si estaban los dos en un turno queda uno solo, con la función de conductor y la firma), hereda la cédula real si el otro solo tenía un provisional, y elimina el duplicado, todo en una transacción.
 - Al **eliminar** a alguien, la pantalla avisa cuántos turnos se perderían; si tiene horas extra no se permite eliminar.
 - **Importar personal por Excel:** columnas `nombre` y `codigo` (y `cedula`, opcional). Hay una plantilla descargable en la propia ventana de importación.
@@ -61,7 +166,7 @@ sql/                 Scripts para DBeaver (no los ejecuta la app)
 
 ## Base de datos
 
-`paramedicos` (personal: nombre, código, cédula única, rol) · `ambulancias` (nombre, código, placa, IPS, horas por turno, activa) ·
+`paramedicos` (personal: nombre, código, cédula única, rol, activo, retirado_el) · `ambulancias` (nombre, código, placa, IPS, horas por turno, activa) ·
 `empresas` (C30, CCM, CCSO) · `turnos` (fecha, turno, ambulancia, horas, empresa) ·
 `turno_paramedicos` (personas de cada turno, función Conductor/Paramédico, firma) · `extras` (horas extra).
 

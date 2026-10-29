@@ -124,6 +124,9 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: paramedicos.some(p => p.funcion === 'Conductor')
       ? 'El conductor y el paramédico no pueden ser la misma persona.'
       : 'No repitas a la misma persona en el mismo turno.' });
+  const retirados = await db.query('SELECT nombre FROM paramedicos WHERE id = ANY($1::text[]) AND activo = FALSE', [ids]);
+  if (retirados.rows.length)
+    return res.status(400).json({ error: `${retirados.rows.map(r => r.nombre).join(', ')} figura como retirado/a y no se puede asignar a turnos.` });
   const conflictos = fecha >= REGLAS_DESDE ? await buscarConflictos(fecha, turno, ids, key) : [];
   if (conflictos.length)
     return res.status(409).json({ error: mensajeConflictos(conflictos, fecha, turno), conflictos });

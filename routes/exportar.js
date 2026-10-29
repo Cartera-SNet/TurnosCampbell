@@ -278,7 +278,7 @@ router.get('/turnos', requireAdmin, async (req, res) => {
 router.get('/personal', requireAdmin, async (req, res) => {
   try {
     const { rows } = await db.query(
-      "SELECT nombre, codigo, rol, cedula, activo FROM paramedicos ORDER BY nombre ASC"
+      "SELECT nombre, codigo, rol, cedula, activo FROM paramedicos WHERE activo = TRUE ORDER BY nombre ASC"
     );
 
     const wb = new ExcelJS.Workbook();

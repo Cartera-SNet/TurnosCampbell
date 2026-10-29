@@ -104,6 +104,9 @@ async function inicializar() {
       END IF;
     END $$`).catch(e => console.warn('[DB] relaciones con empresas NO creadas:', e.message));
 
+    // Personal retirado: no se borra, se inactiva (activo = FALSE) y queda la fecha en que se retiró
+    await pool.query('ALTER TABLE paramedicos ADD COLUMN IF NOT EXISTS retirado_el TIMESTAMPTZ').catch(() => {});
+
     // Quien aún no tiene cédula recibe un código provisional consecutivo (SC0001, SC0002…) hasta que se cargue la real.
     // El número sale de una secuencia: nunca se reutiliza, aunque después la persona reciba su cédula real.
     await pool.query(`DO $$

@@ -841,7 +841,9 @@ function verificarCedulaDuplicada() {
   const norm = normalizarCedula(document.getElementById('paramedico-cedula').value);
   const dup = norm.length >= 5 ? paramedicos.find(p => p.id !== idActual && !String(p.cedula || '').includes('•') && normalizarCedula(p.cedula) === norm) : null;
   if (dup) {
-    aviso.textContent = `⚠️ Esta cédula ya está registrada a nombre de ${dup.nombre} (${dup.codigo}). No se puede registrar a la misma persona dos veces.`;
+    aviso.textContent = dup.activo === false
+      ? `⚠️ Esta cédula pertenece a ${dup.nombre} (${dup.codigo}), que figura como retirada. Si volvió a la empresa, pide al administrador que la reactive en la base de datos: no la registres de nuevo para no perder su historial.`
+      : `⚠️ Esta cédula ya está registrada a nombre de ${dup.nombre} (${dup.codigo}). No se puede registrar a la misma persona dos veces.`;
     aviso.style.display = 'block';
   } else {
     aviso.style.display = 'none';
@@ -885,7 +887,6 @@ function abrirModalParamedico(pm = null) {
   document.getElementById('paramedico-codigo').value = pm?.codigo || (pm ? '' : siguienteCodigoParamedico());
   document.getElementById('paramedico-cedula').value = pm?.cedula || '';
   document.getElementById('paramedico-rol').value = pm?.rol || 'Paramédico';
-  document.getElementById('unir-persona-bloque').style.display = pm ? '' : 'none';
   verificarCedulaDuplicada();
   actualizarAyudaCedula();
   document.getElementById('modal-paramedico').classList.add('open');
@@ -920,24 +921,16 @@ async function guardarParamedico() {
   renderParamedicos();
 }
 
-async function eliminarParamedico(id) {
+// "Eliminar" solo RETIRA a la persona: desaparece de la lista, pero sus datos y su historial de horas se conservan en la base de datos.
+function eliminarParamedico(id) {
   const p = paramedicos.find(x => x.id === id);
   const nombre = p ? p.nombre : 'esta persona';
-  let uso = { turnos: 0, extras: 0 };
-  try { uso = await fetch(`/api/paramedicos/${id}/uso`).then(r => r.json()); } catch (e) { /* si falla, sigue con el aviso general */ }
-  if (uso.extras > 0) {
-    toast(`No se puede eliminar: ${nombre} tiene ${uso.extras} registro(s) de horas extra. Eliminá primero esas horas extra o, si es un registro duplicado, usá Editar → "Unir con otro registro".`, 'error', 9000);
-    return;
-  }
-  const mensaje = uso.turnos > 0
-    ? `${nombre} tiene ${uso.turnos} turno(s) registrados. Si la eliminás, esas horas desaparecen de los reportes (también de meses pasados). Si es la misma persona que otro registro, cancelá y usá Editar → "Unir con otro registro".`
-    : `¿Eliminar a ${nombre}? No tiene turnos ni horas registradas.`;
-  confirmarAccion(mensaje, () => {
+  confirmarAccion(`¿Estás seguro de que quieres eliminar a ${nombre}?`, () => {
     verificarClaveAccion(async () => {
       try {
         const res = await fetchAdmin('/api/paramedicos/' + id, { method: 'DELETE' });
         const data = await res.json();
-        if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error', 9000); return; }
+        if (!res.ok) { toast(data.error || 'No se pudo eliminar', 'error', 6000); return; }
         toast('Personal eliminado');
         await cargarDatos();
         renderParamedicos();
@@ -945,51 +938,7 @@ async function eliminarParamedico(id) {
         toast('Error: ' + e.message, 'error');
       }
     });
-  }, { titulo: 'Eliminar personal' });
-}
-
-// ── Unir dos registros de la misma persona ──
-let _unirOrigenId = '';
-
-function abrirModalUnir() {
-  const id = document.getElementById('paramedico-id').value;
-  const p = paramedicos.find(x => x.id === id);
-  if (!p) return;
-  _unirOrigenId = id;
-  document.getElementById('unir-explicacion').innerHTML =
-    `Se pasarán <strong>todos los turnos y horas extra de ${p.nombre}</strong> al registro que elijas y después se eliminará este. Usalo cuando una misma persona quedó registrada dos veces (por ejemplo con el nombre escrito distinto).`;
-  document.getElementById('unir-destino').innerHTML = '<option value="">— Seleccionar —</option>' +
-    paramedicos.filter(x => x.id !== id).map(x => `<option value="${x.id}">${x.nombre} (${x.codigo})${x.cedula ? ' · CC ' + (_claveVerificada ? x.cedula : '••••' + String(x.cedula).slice(-4)) : ' · sin cédula'}</option>`).join('');
-  document.getElementById('unir-aviso').style.display = 'none';
-  cerrarModal('modal-paramedico');
-  document.getElementById('modal-unir').classList.add('open');
-}
-
-function ejecutarUnion() {
-  const aviso = document.getElementById('unir-aviso');
-  const destinoId = document.getElementById('unir-destino').value;
-  const origen = paramedicos.find(x => x.id === _unirOrigenId);
-  const destino = paramedicos.find(x => x.id === destinoId);
-  if (!destino) { aviso.textContent = '⚠️ Elegí el registro que se conserva.'; aviso.style.display = 'block'; return; }
-  confirmarAccion(
-    `${origen.nombre} se unirá con ${destino.nombre}: todos sus turnos y horas extra pasan a ${destino.nombre} y el registro de ${origen.nombre} se elimina.`,
-    () => verificarClaveAccion(async () => {
-      try {
-        const res = await fetchAdmin(`/api/paramedicos/${_unirOrigenId}/unir`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ destino_id: destinoId }) });
-        const data = await res.json();
-        if (!res.ok) { aviso.textContent = '⚠️ ' + (data.error || 'No se pudo unir'); aviso.style.display = 'block'; return; }
-        cerrarModal('modal-unir');
-        const total = data.turnos_movidos + data.turnos_en_ambos;
-        toast(`Unido: ${total} turno(s) y ${data.extras_movidos} hora(s) extra ahora están en ${data.destino}` + (data.dobles_asignados ? `. Revisá: quedó en ${data.dobles_asignados} turno(s) en dos ambulancias a la vez` : ''), data.dobles_asignados ? 'error' : 'success', 8000);
-        await cargarDatos();
-        renderParamedicos();
-        cargarMalla();
-      } catch (e) {
-        aviso.textContent = '⚠️ Error: ' + e.message; aviso.style.display = 'block';
-      }
-    }),
-    { titulo: 'Unir registros', textoBoton: 'Sí, unir' }
-  );
+  }, { titulo: 'Eliminar personal', textoBoton: 'Sí, eliminar' });
 }
 
 function revelarCedulas() {
@@ -1001,10 +950,11 @@ function renderParamedicos() {
   const btn = document.getElementById('btn-revelar-cedulas');
   if (btn) btn.textContent = _claveVerificada ? '🔓 Cédulas visibles' : '🔒 Ver cédulas';
   const container = document.getElementById('paramedicos-container');
+  const activos = paramedicos.filter(p => p.activo !== false);   // los retirados no se muestran (siguen en la base de datos)
   const lista = _busquedaParamedicos
-    ? paramedicos.filter(p => p.nombre.toLowerCase().includes(_busquedaParamedicos) || p.codigo.toLowerCase().includes(_busquedaParamedicos) || (p.rol || '').toLowerCase().includes(_busquedaParamedicos))
-    : paramedicos;
-  if (!paramedicos.length) {
+    ? activos.filter(p => p.nombre.toLowerCase().includes(_busquedaParamedicos) || p.codigo.toLowerCase().includes(_busquedaParamedicos) || (p.rol || '').toLowerCase().includes(_busquedaParamedicos))
+    : activos;
+  if (!activos.length) {
     container.innerHTML = `<div class="empty-state"><div class="icon">👨‍⚕️</div><p>No hay paramédicos registrados</p></div>`;
     return;
   }

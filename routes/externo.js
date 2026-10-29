@@ -22,7 +22,7 @@ router.use(validarClaveExterna);
 router.get('/paramedicos', async (req, res) => {
   try {
     const { rows } = await db.query(
-      `SELECT id, nombre, codigo, cedula, (cedula ~ '^SC[0-9]+$') AS cedula_provisional, rol, activo FROM paramedicos ORDER BY codigo ASC`
+      `SELECT id, nombre, codigo, cedula, (cedula ~ '^SC[0-9]+$') AS cedula_provisional, rol, activo, retirado_el FROM paramedicos ORDER BY codigo ASC`
     );
     res.json(rows);
   } catch (e) {

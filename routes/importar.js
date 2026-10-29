@@ -47,17 +47,17 @@ router.post('/paramedicos', requireAdmin, upload.single('archivo'), async (req, 
       continue;
     }
 
-    const existe = await db.query('SELECT id FROM paramedicos WHERE codigo=$1', [codigo]);
+    const existe = await db.query('SELECT nombre, activo FROM paramedicos WHERE codigo=$1', [codigo]);
     if (existe.rows.length) {
       resultados.omitidos++;
-      resultados.errores.push(`Código "${codigo}" ya existe (${nombre})`);
+      resultados.errores.push(existe.rows[0].activo === false ? `Código "${codigo}" pertenece a ${existe.rows[0].nombre}, que figura como retirada (${nombre})` : `Código "${codigo}" ya existe (${nombre})`);
       continue;
     }
     if (conCedula) {
       const dup = await buscarCedulaDuplicada(db, cedula, null);
       if (dup) {
         resultados.omitidos++;
-        resultados.errores.push(`La cédula de ${nombre} ya está registrada a nombre de ${dup.nombre} (${dup.codigo})`);
+        resultados.errores.push(`La cédula de ${nombre} ya está registrada a nombre de ${dup.nombre} (${dup.codigo})${dup.activo === false ? ', que figura como retirada: pide al administrador que la reactive' : ''}`);
         continue;
       }
     }

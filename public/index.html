@@ -305,31 +305,8 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button type="button" id="unir-persona-bloque" class="btn-ghost" style="display:none" title="Úsalo si esta persona quedó registrada dos veces: pasa sus turnos y horas al otro registro" onclick="abrirModalUnir()">⇄ Unir con otro registro</button>
       <button class="btn-secondary" onclick="cerrarModal('modal-paramedico')">Cancelar</button>
       <button class="btn-primary" onclick="guardarParamedico()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL UNIR PERSONAL -->
-<div id="modal-unir" class="modal">
-  <div class="modal-content modal-sm">
-    <div class="modal-header">
-      <h2>🔗 Unir registros de la misma persona</h2>
-      <button class="modal-close" onclick="cerrarModal('modal-unir')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p id="unir-explicacion" style="font-size:13.5px;line-height:1.5"></p>
-      <div class="form-group">
-        <label>Registro que se conserva</label>
-        <select id="unir-destino"></select>
-      </div>
-      <div id="unir-aviso" class="campo-aviso" role="alert" style="display:none"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="cerrarModal('modal-unir')">Cancelar</button>
-      <button class="btn-primary" onclick="ejecutarUnion()">Unir</button>
     </div>
   </div>
 </div>
