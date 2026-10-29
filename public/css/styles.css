@@ -106,8 +106,10 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .turno-noche { background: var(--noche-bg); color: #4A148C; border: 1px solid var(--noche-border); }
 .badge-extra { background: var(--extra-bg); color: #1B5E20; border: 1px solid var(--extra-border); }
 .turno-acciones { white-space: nowrap; }
-.btn-ver-turno { width: 30px; height: 30px; margin-right: 3px; border: 1px solid var(--verde-borde); border-radius: 5px; background: white; color: var(--verde); cursor: pointer; font-size: 15px; vertical-align: middle; }
-.btn-ver-turno:hover { background: var(--verde-bg); }
+.btn-ver-turno { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin-right: 3px; padding: 0; border: 1px solid var(--verde-borde); border-radius: 7px; background: white; color: var(--verde); cursor: pointer; vertical-align: middle; transition: background .15s, border-color .15s, box-shadow .15s; }
+.btn-ver-turno:hover { background: var(--verde-bg); border-color: var(--verde); }
+.btn-ver-turno:focus-visible { outline: 2px solid var(--verde); outline-offset: 2px; }
+.btn-ver-turno svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .turno-detalle-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .turno-detalle-grid > div { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
 .turno-detalle-grid span { color: var(--text-muted); font-size: 12px; }

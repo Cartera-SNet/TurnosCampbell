@@ -395,7 +395,12 @@ async function cargarMalla() {
             <td style="border-top:${bt};text-align:center"><span class="turno-chip turno-${t.turno}">${t.turno === 'dia' ? '☀️ Día' : '🌙 Noche'} · ${t.horas}h</span></td>
             <td style="border-top:${bt};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${paraStr}</td>
             <td class="turno-acciones" style="border-top:${bt};text-align:center">
-              <button class="btn-ver-turno" onclick="verTurno('${t.id}')" aria-label="Ver turno de ${formatFecha(t.fecha)}" title="Ver turno">👁️</button>
+              <button class="btn-ver-turno" onclick="verTurno('${t.id}')" aria-label="Ver turno de ${formatFecha(t.fecha)}" title="Ver detalle del turno">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"></path>
+                  <circle cx="12" cy="12" r="2.7"></circle>
+                </svg>
+              </button>
               <button class="btn-danger" style="font-size:11px;padding:3px 8px" onclick="eliminarTurno('${t.id}')" aria-label="Eliminar turno" title="Eliminar turno">✕</button>
             </td>
           </tr>`;
@@ -505,7 +510,7 @@ function abrirModalTurno(fecha = '') {
   const selAmb = document.getElementById('turno-ambulancia');
   selAmb.innerHTML = '<option value="">-- Seleccionar ambulancia --</option>';
   ambulancias.filter(a => a.activa !== false).forEach(a => {
-    selAmb.innerHTML += `<option value="${a.id}" data-codigo="${a.codigo}">${a.codigo} - ${a.nombre}</option>`;
+    selAmb.innerHTML += `<option value="${a.id}" data-codigo="${a.codigo}" data-ips="${a.ips || ''}">${a.codigo} - ${a.nombre}${a.ips ? ` · IPS ${a.ips}` : ''}</option>`;
   });
 
   llenarSelectEmpresas(document.getElementById('turno-empresa'), '', '— Seleccionar empresa —');
@@ -542,7 +547,8 @@ function alCambiarModalTurno(ev) {
   const t = ev.target;
   if (t.id === 'turno-ambulancia') {
     const a = ambulancias.find(x => x.id === t.value);
-    if (a?.ips) document.getElementById('turno-empresa').value = a.ips;   // la empresa sugerida es la IPS de la ambulancia
+    const empresaSel = document.getElementById('turno-empresa');
+    empresaSel.value = a?.ips || '';
     actualizarOcupados();
   } else if (t.id === 'turno-fecha' || t.name === 'turno-tipo') {
     actualizarOcupados();
