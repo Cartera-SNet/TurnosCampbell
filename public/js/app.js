@@ -849,6 +849,27 @@ function verificarCedulaDuplicada() {
   return dup || null;
 }
 
+// Una línea de ayuda bajo la cédula que explica qué va a pasar según el caso
+function actualizarAyudaCedula() {
+  const ayuda = document.getElementById('cedula-ayuda');
+  const id = document.getElementById('paramedico-id').value;
+  const valor = document.getElementById('paramedico-cedula').value.trim();
+  const p = paramedicos.find(x => x.id === id);
+  const provisional = p && /^SC\d+$/.test(p.cedula || '') ? p.cedula : null;
+  let texto = '', clase = 'campo-ayuda';
+  if (!id) {
+    texto = 'Si todavía no la tienen, déjala vacía: se asignará un código provisional (SC0001, SC0002…).';
+  } else if (provisional && (!valor || /^SC\d+$/i.test(valor))) {
+    texto = `⚠ Esta persona tiene el código provisional ${provisional}. Cuando tengas la cédula real, escríbela aquí: reemplaza el código y se conservan todas sus horas.`;
+    clase += ' aviso';
+  } else if (provisional) {
+    texto = `✔ Al guardar, esta cédula reemplaza al código provisional ${provisional}. Sus turnos y horas se conservan.`;
+    clase += ' ok';
+  }
+  ayuda.className = clase;
+  ayuda.textContent = texto;
+}
+
 function editarParamedico(id) {
   verificarClaveAccion(async () => {
     await cargarDatos();
@@ -864,8 +885,9 @@ function abrirModalParamedico(pm = null) {
   document.getElementById('paramedico-codigo').value = pm?.codigo || (pm ? '' : siguienteCodigoParamedico());
   document.getElementById('paramedico-cedula').value = pm?.cedula || '';
   document.getElementById('paramedico-rol').value = pm?.rol || 'Paramédico';
-  document.getElementById('unir-persona-bloque').style.display = pm ? 'block' : 'none';
+  document.getElementById('unir-persona-bloque').style.display = pm ? '' : 'none';
   verificarCedulaDuplicada();
+  actualizarAyudaCedula();
   document.getElementById('modal-paramedico').classList.add('open');
   setTimeout(() => document.getElementById('paramedico-nombre').focus(), 100);
 }

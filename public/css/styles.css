@@ -173,8 +173,14 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
 .modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: white; }
 .form-group { display: flex; flex-direction: column; gap: 7px; }
-.btn-link { background: none; border: none; padding: 0; color: var(--verde); font-size: 12.5px; text-decoration: underline; cursor: pointer; text-align: left; }
-.btn-link:hover { color: var(--verde-claro, var(--verde)); }
+/* Acción secundaria discreta (a la izquierda del pie del formulario) */
+.btn-ghost { margin-right: auto; background: none; border: 1.5px solid transparent; color: var(--text-muted); padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 13px; min-height: 44px; transition: all .15s; white-space: nowrap; }
+.btn-ghost:hover { background: var(--verde-bg); color: var(--verde); border-color: var(--verde-borde); }
+/* Línea de ayuda bajo un campo */
+.campo-ayuda { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); }
+.campo-ayuda:empty { display: none; }
+.campo-ayuda.aviso { color: #92400e; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 8px 10px; }
+.campo-ayuda.ok { color: #1B5E37; background: var(--verde-bg); border: 1px solid var(--verde-borde); border-radius: 8px; padding: 8px 10px; }
 .campo-aviso { font-size: 12.5px; line-height: 1.4; color: #92400e; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 8px 10px; }
 .form-group label { font-size: 13.5px; font-weight: 600; color: var(--verde); }
 .form-group input, .form-group select { width: 100%; }
@@ -268,6 +274,7 @@ select:focus, input:focus { outline: none; border-color: var(--verde); box-shado
   .modal-footer { flex-direction: column-reverse; }
   .modal-footer .btn-primary,
   .modal-footer .btn-secondary { width: 100%; justify-content: center; text-align: center; }
+  .modal-footer .btn-ghost { width: 100%; margin-right: 0; text-align: center; }
 
   /* Toast sobre barra inferior */
   .toast { bottom: calc(var(--bnh) + 10px); }

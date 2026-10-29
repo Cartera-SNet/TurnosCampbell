@@ -298,15 +298,14 @@
         <input type="text" id="paramedico-codigo" placeholder="Ej: P001">
       </div>
       <div class="form-group">
-        <label>Cédula <small style="font-weight:400;color:var(--text-muted)">(identifica a la persona · si todavía no la tienen, dejala vacía: se asigna un código provisional SC0001, SC0002…)</small></label>
-        <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890" oninput="verificarCedulaDuplicada()">
+        <label>Cédula</label>
+        <input type="text" id="paramedico-cedula" placeholder="Ej: 1234567890" oninput="verificarCedulaDuplicada(); actualizarAyudaCedula()">
         <div id="paramedico-cedula-aviso" class="campo-aviso" style="display:none"></div>
-      </div>
-      <div id="unir-persona-bloque" style="display:none">
-        <button type="button" class="btn-link" onclick="abrirModalUnir()">🔗 ¿Esta persona quedó registrada dos veces? Unir con otro registro…</button>
+        <div id="cedula-ayuda" class="campo-ayuda"></div>
       </div>
     </div>
     <div class="modal-footer">
+      <button type="button" id="unir-persona-bloque" class="btn-ghost" style="display:none" title="Úsalo si esta persona quedó registrada dos veces: pasa sus turnos y horas al otro registro" onclick="abrirModalUnir()">⇄ Unir con otro registro</button>
       <button class="btn-secondary" onclick="cerrarModal('modal-paramedico')">Cancelar</button>
       <button class="btn-primary" onclick="guardarParamedico()">Guardar</button>
     </div>
